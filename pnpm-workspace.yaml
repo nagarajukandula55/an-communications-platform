@@ -1,0 +1,21 @@
+packages:
+  # Applications
+  - "apps/*"
+
+  # Microservices
+  - "services/*"
+
+  # Shared Packages
+  - "packages/*"
+
+  # Infrastructure Utilities
+  - "infrastructure/*"
+
+  # Internal CLI / Tooling
+  - "tools/*"
+
+  # Examples
+  - "examples/*"
+
+  # Integration Tests
+  - "tests/*"
