@@ -43,7 +43,7 @@ async function startServer(): Promise<
   const deviceTokens = new InMemoryDeviceTokenRepository();
   const devices = new DeviceService(new InMemoryDeviceRepository(), new EventBus());
 
-  const built = await buildApp({ auth, devices, deviceTokens });
+  const built = await buildApp({ auth, tokens, devices, deviceTokens });
   app = built.app;
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
 

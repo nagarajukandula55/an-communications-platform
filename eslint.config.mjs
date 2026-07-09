@@ -13,6 +13,7 @@ export default [
       '**/node_modules/**',
       '**/.turbo/**',
       '**/*.d.ts',
+      '**/postcss.config.mjs',
     ],
   },
 

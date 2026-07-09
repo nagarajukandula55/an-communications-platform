@@ -69,7 +69,7 @@ async function main(): Promise<void> {
   const deviceRepository = new PostgresDeviceRepository(db);
   const devices = new DeviceService(deviceRepository, events);
 
-  const { app, smsDispatcher } = await buildApp({ auth, devices, deviceTokens });
+  const { app, smsDispatcher } = await buildApp({ auth, tokens, devices, deviceTokens });
 
   const deviceDirectory: DeviceDirectory = {
     listOnlineByTenant: async (tenantId) => {

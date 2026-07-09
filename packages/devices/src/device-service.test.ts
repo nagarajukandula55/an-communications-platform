@@ -14,6 +14,17 @@ function createService(offlineThresholdMs = 90_000) {
 }
 
 describe('DeviceService', () => {
+  it('lists devices scoped to a tenant', async () => {
+    const { service } = createService();
+    await service.register('t1', 'Pixel 8');
+    await service.register('t1', 'Pixel 9');
+    await service.register('t2', 'Other tenant device');
+
+    const devices = await service.list('t1');
+    expect(devices).toHaveLength(2);
+    expect(devices.every((d) => d.tenantId === 't1')).toBe(true);
+  });
+
   it('registers a device as offline', async () => {
     const { service } = createService();
     const device = await service.register('t1', 'Pixel 8');

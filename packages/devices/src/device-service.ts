@@ -28,6 +28,10 @@ export class DeviceService {
       options.offlineThresholdMs ?? DEFAULT_OFFLINE_THRESHOLD_MS;
   }
 
+  list(tenantId: string): Promise<Device[]> {
+    return this.repository.listByTenant(tenantId);
+  }
+
   async register(tenantId: string, name: string): Promise<Device> {
     const device: Device = {
       id: generateId(),

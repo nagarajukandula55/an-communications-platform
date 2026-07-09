@@ -1,10 +1,12 @@
 import websocketPlugin from '@fastify/websocket';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import {
   EmailInUseError,
   InvalidCredentialsError,
+  type AccessTokenClaims,
   type AuthService,
   type DeviceTokenRepository,
+  type TokenService,
 } from '@acp/auth';
 import type { DeviceService } from '@acp/devices';
 import { ConnectionRegistry } from './connection-registry.js';
@@ -16,6 +18,7 @@ import { WsDeviceCommandDispatcher } from './ws-device-command-dispatcher.js';
 
 export interface AppDeps {
   readonly auth: AuthService;
+  readonly tokens: TokenService;
   readonly devices: DeviceService;
   readonly deviceTokens: DeviceTokenRepository;
 }
@@ -87,6 +90,24 @@ export async function buildApp(deps: AppDeps): Promise<BuiltApp> {
         return;
       }
       throw error;
+    }
+  });
+
+  function requireAuth(request: FastifyRequest): AccessTokenClaims {
+    const header = request.headers.authorization;
+    if (!header?.startsWith('Bearer ')) {
+      throw new InvalidCredentialsError();
+    }
+    return deps.tokens.verifyAccessToken(header.slice('Bearer '.length));
+  }
+
+  app.get('/devices', async (request, reply) => {
+    try {
+      const claims = requireAuth(request);
+      const devices = await deps.devices.list(claims.organizationId);
+      await reply.send({ devices });
+    } catch {
+      await reply.code(401).send({ message: 'Unauthorized' });
     }
   });
 

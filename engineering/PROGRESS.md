@@ -8,13 +8,38 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.7
-- Next Milestone: M10 Dashboard
+- Current Version: 0.8
+- Next Milestone: M11 OTP
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M10 - Dashboard (2026-07-09)
+
+New `apps/dashboard`: Next.js 15 (App Router) + React 19 + Tailwind, real
+`next build` verified (not just typecheck — actual static page generation
+for all 7 routes) plus 5 vitest unit tests.
+
+- `/login`: calls `POST /auth/login` on `apps/api`, stores the session in
+  `localStorage` (`lib/session.ts`)
+- `/devices`: calls the new `GET /devices` endpoint (auth-required, added
+  to `apps/api` this milestone — `DeviceService.list()` +
+  `requireAuth()` Bearer-token check), renders a status table with
+  online/offline/unknown badges (`lib/device-status.ts`, unit tested)
+- `/`, `/queue`, `/analytics`, `/logs`: honest placeholders, not fake
+  data — each explicitly states which backend endpoint doesn't exist yet
+  (Queue Monitoring, Analytics, and Live Logs all need API endpoints that
+  weren't in scope for any milestone so far)
+- Root `eslint.config.mjs` gained one exception: `postcss.config.mjs` is
+  ignored by typed linting (it's a build-tool config file with no
+  corresponding tsconfig entry, not app code)
+- `apps/api` changes beyond the new route: `AppDeps` now requires an
+  explicit `tokens: TokenService` (previously only reachable inside
+  `AuthService`) so routes outside auth can verify bearer tokens; 12
+  apps/api tests now (2 new: reject without token, list scoped to the
+  authenticated org)
 
 ### M09 - SMS Transport (2026-07-09)
 
