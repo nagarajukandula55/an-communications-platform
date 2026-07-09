@@ -8,13 +8,41 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.3
-- Next Milestone: M04 Authentication
+- Current Version: 0.4
+- Next Milestone: M05 Messaging Core
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M04 - Authentication (2026-07-09)
+
+- New `@acp/auth` package: domain logic for organizations, users, API keys,
+  JWT access/refresh tokens, RBAC, and device tokens
+- `AuthService`: `register` (new org + owner), `inviteUser` (add a member
+  to an existing org, enforces per-org email uniqueness), `login`,
+  `refresh` (rotates refresh tokens, revokes the old one), `createApiKey`
+  / `verifyApiKey`
+- Passwords hashed with bcryptjs; API keys and refresh tokens hashed with
+  SHA-256 for fast lookup (they're high-entropy random tokens, not
+  user-chosen secrets, so bcrypt's cost factor buys nothing there)
+- `rbac.ts`: owner/admin/member permission matrix + `assertPermission`
+- Repository interfaces with both an in-memory implementation (used in
+  tests, no DB required) and a Postgres implementation on top of
+  `@acp/database`; schema in `migrations.ts` (organizations, users,
+  api_keys, refresh_tokens, device_tokens)
+- Full unit test coverage for password hashing, tokens, RBAC, API keys,
+  and the AuthService flows (register/login/refresh/invite/api-key)
+- Caught and fixed a real bug during testing: `register()` always
+  created a new organization, so the "email already in use" check could
+  never fire through the public API. Split into `register` (first user,
+  always succeeds) and `inviteUser` (subsequent users, where the
+  uniqueness check is real) rather than shipping dead code.
+- Not built in this pass: no HTTP layer yet (no `apps/api` routes wired
+  up) — this milestone is the auth *domain package*; wiring it into an
+  HTTP service happens alongside M05 Messaging Core when `apps/api`
+  actually needs endpoints to serve.
 
 ### M03 - Infrastructure (2026-07-09)
 
