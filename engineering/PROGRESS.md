@@ -8,13 +8,32 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.1
-- Next Milestone: M02 Shared Packages
+- Current Version: 0.2
+- Next Milestone: M03 Infrastructure
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M02 - Shared Packages (2026-07-09)
+
+- 8 packages under `packages/`: types, shared, config, logger, events, cache,
+  database, sdk — each with package.json, tsconfig, src/index.ts, and tests
+- `@acp/types`: Channel/MessageStatus/Message/DeliveryReport/Device types and
+  the `AcpEventMap` used across the platform
+- `@acp/shared`: Result type, generateId, sleep, retry-with-backoff
+- `@acp/config`: zod-validated environment config loader
+- `@acp/logger`: structured JSON logger with levels and child bindings
+- `@acp/events`: typed EventBus over node:events, async-safe handlers
+- `@acp/cache`: CacheStore interface + InMemoryCache (Redis-backed impl
+  deferred to M03 once Redis infra exists)
+- `@acp/database`: thin `pg` Pool wrapper with health check (Prisma/schema
+  work deferred to M04 Authentication)
+- `@acp/sdk`: base `ApiClient` (fetch-based, bearer auth, ApiError)
+- Fixed turbo.json: `typecheck` now depends on `^build` so workspace package
+  type declarations exist before dependents typecheck against them
+- `pnpm verify` (lint + typecheck + test + build) passes across all 8 packages
 
 ### M01 - Repository Foundation (2026-07-09)
 

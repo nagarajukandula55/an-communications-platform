@@ -91,6 +91,9 @@
       "@acp/events": [
         "packages/events/src"
       ],
+      "@acp/cache": [
+        "packages/cache/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],
