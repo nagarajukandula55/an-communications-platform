@@ -8,13 +8,42 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.4
-- Next Milestone: M05 Messaging Core
+- Current Version: 0.5
+- Next Milestone: M06 Queue
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M05 - Messaging Core (2026-07-09)
+
+- New `@acp/messaging` package: templates, retry policy, router, queue
+  abstraction, message persistence, and `MessageService` orchestration
+- `template.ts`: `{{variable}}` substitution, throws
+  `MissingTemplateVariableError` on unset variables (fail loud instead of
+  silently sending "Hi {{name}}")
+- `retry-policy.ts`: pure `RetryPolicy` — exponential backoff with a cap,
+  `decide(attempt)` / `isExhausted(attempt)`
+- `router.ts`: `MessageRouter` maps `Channel` -> `Transport`; real
+  SMS/Email/etc. transports land in M09/M13+ and register against this
+  router rather than the orchestrator knowing about them directly (per
+  the master spec's "orchestrator must not know implementation details")
+- `queue.ts`: `MessageQueue<T>` interface with an `InMemoryMessageQueue`
+  (used in tests) and a `BullMqMessageQueue`/`createBullMqWorker` backed
+  by BullMQ + Redis for real use
+- `MessageService.send()`: renders template or uses raw body, persists
+  the message, emits `MessageCreated`/`MessageQueued` on the `@acp/events`
+  bus, enqueues a `send-message` job (respecting `scheduledAt` as a
+  queue delay), and updates status
+- Message persistence: repository interface + in-memory impl (tested) +
+  Postgres impl on `@acp/database` with schema in `migrations.ts`
+- 13 tests across templates, retry policy, router, and MessageService;
+  all packages pass `pnpm verify`
+- Not built in this pass: no worker process actually consuming the
+  BullMQ queue yet (that's the "Queue" milestone, M06), and no live test
+  against a running Redis/BullMQ — same sandbox limitation as M03's
+  Docker Compose validation.
 
 ### M04 - Authentication (2026-07-09)
 

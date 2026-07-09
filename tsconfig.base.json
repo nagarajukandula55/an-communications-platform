@@ -97,6 +97,9 @@
       "@acp/auth": [
         "packages/auth/src"
       ],
+      "@acp/messaging": [
+        "packages/messaging/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],
