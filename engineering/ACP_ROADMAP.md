@@ -96,7 +96,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+✅ Complete
 
 ---
 
@@ -360,16 +360,16 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.2
+0.3
 
 Current Milestone
 
-M02 Shared Packages
+M03 Infrastructure
 
 Current Sprint
 
-Sprint 2
+Sprint 3
 
 Current Objective
 
-Stand up PostgreSQL, Redis, MinIO, and observability infrastructure (M03).
+Build Authentication: Users, Organizations, API Keys, JWT, RBAC (M04).

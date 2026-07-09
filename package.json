@@ -24,7 +24,11 @@
     "format:check": "prettier . --check",
     "prepare": "husky",
     "doctor": "node tools/doctor/index.js",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "infra:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml down",
+    "infra:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml logs -f",
+    "infra:config": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml config"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.0.0",

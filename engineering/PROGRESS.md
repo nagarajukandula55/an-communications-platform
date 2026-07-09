@@ -8,13 +8,31 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.2
-- Next Milestone: M03 Infrastructure
+- Current Version: 0.3
+- Next Milestone: M04 Authentication
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M03 - Infrastructure (2026-07-09)
+
+- `infrastructure/docker/docker-compose.yml`: Postgres 17, Redis 7, MinIO,
+  Traefik v3 (dashboard + docker provider), Prometheus, Loki, Grafana —
+  all on a shared `acp` network with named volumes and healthchecks
+- `infrastructure/observability/prometheus.yml`: scrapes Traefik and a
+  placeholder `acp-api` job for when the API service exists (M04+)
+- `infrastructure/observability/loki-config.yml`: filesystem-backed,
+  single-node config suitable for local/dev
+- `infrastructure/observability/grafana/provisioning/`: auto-provisions
+  Prometheus + Loki datasources on Grafana startup
+- Root scripts: `infra:up`, `infra:down`, `infra:logs`, `infra:config`
+- Validated with `docker compose config` (env interpolation + schema);
+  could not do a live `up`/health-check smoke test — no Docker daemon
+  available in this sandbox, only the CLI. Recommend a live smoke test
+  (`pnpm infra:up` then check container health) before relying on this
+  in a real environment.
 
 ### M02 - Shared Packages (2026-07-09)
 
