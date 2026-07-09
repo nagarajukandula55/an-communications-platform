@@ -2,6 +2,8 @@ export * from './template.js';
 export * from './retry-policy.js';
 export * from './router.js';
 export * from './queue.js';
+export * from './dead-letter-queue.js';
+export * from './message-processor.js';
 export * from './repositories.js';
 export * from './memory-repository.js';
 export * from './postgres-repository.js';

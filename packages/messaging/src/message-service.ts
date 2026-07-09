@@ -7,7 +7,10 @@ import { renderTemplate, type Template } from './template.js';
 
 export interface QueuedMessagePayload {
   readonly messageId: string;
+  readonly attempt?: number;
 }
+
+export const SEND_MESSAGE_JOB = 'send-message';
 
 export interface SendMessageInput {
   readonly tenantId: string;
@@ -32,8 +35,6 @@ export interface MessageServiceDeps {
   readonly queue: MessageQueue<QueuedMessagePayload>;
   readonly events: EventBus;
 }
-
-const QUEUE_JOB_NAME = 'send-message';
 
 export class MessageService {
   constructor(private readonly deps: MessageServiceDeps) {}
@@ -71,7 +72,7 @@ export class MessageService {
       : undefined;
 
     await this.deps.queue.enqueue(
-      QUEUE_JOB_NAME,
+      SEND_MESSAGE_JOB,
       { messageId: message.id },
       delayMs !== undefined ? { delayMs } : {},
     );

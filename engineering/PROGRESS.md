@@ -9,12 +9,34 @@ and update it before finishing.
 ## Status
 
 - Current Version: 0.5
-- Next Milestone: M06 Queue
+- Next Milestone: M07 Device Management
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M06 - Queue (2026-07-09)
+
+- `dead-letter-queue.ts`: `DeadLetterQueue<T>` interface + in-memory impl
+  (used in tests); real usage backs onto the same Postgres/Redis chosen
+  for the rest of the stack, not built as a separate infra piece here
+- `message-processor.ts`: `createMessageProcessor(deps)` — the actual
+  consumer-side logic for the `send-message` queue. On success: marks
+  the message `sent`, emits `MessageSent`. On failure: asks the M05
+  `RetryPolicy` whether to retry; if yes, re-enqueues with the computed
+  backoff delay and an incremented attempt count; if attempts are
+  exhausted, marks the message `failed`, pushes to the dead-letter
+  queue, and emits `MessageFailed` with a `DeliveryReport`
+  - Chose re-enqueue-with-backoff over BullMQ's built-in retry/backoff
+    so the same `RetryPolicy` (and its tests) governs both the queue
+    and any future non-BullMQ transport, keeping retry behavior in one
+    place instead of split between our code and BullMQ config.
+- 4 new tests covering the success, retry, exhaustion, and
+  message-not-found paths — 17 tests total in `@acp/messaging` now
+- Still not built: an actual `createBullMqWorker` process wired to
+  `createMessageProcessor` and started somewhere (that's part of
+  standing up `apps/api` as a real service, not a pure library concern)
 
 ### M05 - Messaging Core (2026-07-09)
 
