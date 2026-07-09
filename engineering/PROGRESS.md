@@ -9,12 +9,37 @@ and update it before finishing.
 ## Status
 
 - Current Version: 0.8
-- Next Milestone: M11 OTP
+- Next Milestone: M12 Analytics
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M11 - OTP (2026-07-09)
+
+- `OtpService` added to `@acp/auth`, built on the M02 `@acp/cache`
+  `CacheStore` (a perfect fit: OTPs are inherently short-TTL ephemeral
+  data, no new Postgres table needed)
+- `request(purpose, identifier)`: generates an N-digit code (default 6,
+  via `crypto.randomInt` not `Math.random`), stores only its hash
+  (reusing `hashApiKey`/`verifyApiKey` from M04 — generic token-hashing
+  utilities, not API-key-specific) with a 5-minute default TTL, returns
+  the plaintext code for the caller to actually deliver (SMS/email —
+  wiring that up is a caller concern, not this service's)
+- `verify(purpose, identifier, code)`: correct code deletes the entry
+  and returns `true`; wrong code increments an attempt counter and
+  returns `false`; exceeding `maxAttempts` (default 5) deletes the entry
+  and throws `OtpAttemptsExceededError` — brute-forcing a 6-digit code
+  is prevented by this attempt cap, not by hash cost, which is why a
+  fast hash (sha256) is fine here unlike password hashing
+- Codes are scoped by both `purpose` and `identifier` so e.g. a login
+  OTP and a signup OTP for the same phone number don't collide
+- 6 tests: length, verify-and-consume (one-time use), wrong code,
+  purpose/identifier scoping, attempts-exceeded, and expiry (using a
+  short TTL + real sleep rather than mocked timers, since `InMemoryCache`
+  checks `Date.now()` internally)
+- `@acp/auth` is now at 25 tests total across 6 files
 
 ### M10 - Dashboard (2026-07-09)
 
