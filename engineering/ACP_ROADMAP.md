@@ -136,7 +136,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+✅ Complete
 
 ---
 
@@ -360,16 +360,16 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.4
+0.5
 
 Current Milestone
 
-M04 Authentication
+M05 Messaging Core
 
 Current Sprint
 
-Sprint 4
+Sprint 5
 
 Current Objective
 
-Build Messaging Core: Message entity, templates, queue, retry, scheduler, router, event bus (M05).
+Build the BullMQ-backed Queue milestone (M06): dead-letter handling and worker wiring on top of the M05 queue abstraction.
