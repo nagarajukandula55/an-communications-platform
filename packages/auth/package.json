@@ -21,6 +21,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@acp/cache": "workspace:*",
     "@acp/database": "workspace:*",
     "@acp/shared": "workspace:*",
     "bcryptjs": "^2.4.3",

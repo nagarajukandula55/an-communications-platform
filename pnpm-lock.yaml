@@ -145,6 +145,9 @@ importers:
 
   packages/auth:
     dependencies:
+      '@acp/cache':
+        specifier: workspace:*
+        version: link:../cache
       '@acp/database':
         specifier: workspace:*
         version: link:../database

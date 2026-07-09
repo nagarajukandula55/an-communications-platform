@@ -364,12 +364,12 @@ Current Version
 
 Current Milestone
 
-M10 Dashboard
+M11 OTP
 
 Current Sprint
 
-Sprint 10
+Sprint 11
 
 Current Objective
 
-Build M11 OTP: generation and verification flows.
+Build M12 Analytics: delivery metrics and dashboards.

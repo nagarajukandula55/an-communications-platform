@@ -4,6 +4,10 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "references": [{ "path": "../database" }, { "path": "../shared" }],
+  "references": [
+    { "path": "../cache" },
+    { "path": "../database" },
+    { "path": "../shared" }
+  ],
   "include": ["src"]
 }

@@ -8,3 +8,4 @@ export * from './memory-repositories.js';
 export * from './postgres-repositories.js';
 export * from './migrations.js';
 export * from './auth-service.js';
+export * from './otp.js';
