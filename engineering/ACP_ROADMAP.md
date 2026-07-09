@@ -116,7 +116,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+✅ Complete
 
 ---
 
@@ -360,16 +360,16 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.3
+0.4
 
 Current Milestone
 
-M03 Infrastructure
+M04 Authentication
 
 Current Sprint
 
-Sprint 3
+Sprint 4
 
 Current Objective
 
-Build Authentication: Users, Organizations, API Keys, JWT, RBAC (M04).
+Build Messaging Core: Message entity, templates, queue, retry, scheduler, router, event bus (M05).

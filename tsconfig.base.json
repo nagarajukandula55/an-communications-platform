@@ -94,6 +94,9 @@
       "@acp/cache": [
         "packages/cache/src"
       ],
+      "@acp/auth": [
+        "packages/auth/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],
