@@ -156,7 +156,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+🔄 In Progress (Device Registration, WebSocket, Authentication, Heartbeat done; SMS Sending/Receiving/Delivery Reports land in M09)
 
 ---
 
