@@ -1,0 +1,35 @@
+{
+  "name": "@acp/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@acp/auth": "workspace:*",
+    "@acp/config": "workspace:*",
+    "@acp/database": "workspace:*",
+    "@acp/devices": "workspace:*",
+    "@acp/events": "workspace:*",
+    "@acp/logger": "workspace:*",
+    "@acp/messaging": "workspace:*",
+    "@fastify/websocket": "^11.0.2",
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "vitest": "^3.2.4",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "references": [
+    { "path": "../../packages/auth" },
+    { "path": "../../packages/config" },
+    { "path": "../../packages/database" },
+    { "path": "../../packages/devices" },
+    { "path": "../../packages/events" },
+    { "path": "../../packages/logger" },
+    { "path": "../../packages/messaging" }
+  ],
+  "include": ["src"]
+}
