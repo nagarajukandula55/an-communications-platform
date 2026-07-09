@@ -9,12 +9,36 @@ and update it before finishing.
 ## Status
 
 - Current Version: 0.5
-- Next Milestone: M07 Device Management
+- Next Milestone: M08 Android Gateway
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M07 - Device Management (2026-07-09)
+
+- New `@acp/devices` package: device registry, heartbeat, and
+  staleness/offline detection (device *tokens* already exist in
+  `@acp/auth` from M04 — this milestone is the device entity/lifecycle
+  side, not auth)
+- `DeviceService.register` (creates a device as `offline`),
+  `.heartbeat` (marks `online`, emits `DeviceConnected` only on the
+  offline -> online transition, not on every heartbeat), `.isStale`
+  (pure function, configurable threshold, default 90s), and
+  `.sweepStaleDevices` (flips stale `online` devices to `offline` and
+  emits `DeviceDisconnected` per device) — the sweep is a plain
+  function meant to be called from a scheduled job in `apps/api`, not a
+  background timer baked into the package
+- Repository interface + in-memory impl (tested) + Postgres impl on
+  `@acp/database`, schema in `migrations.ts`
+- 5 tests covering registration, connect/disconnect events, not-found,
+  and staleness detection
+- Explicitly NOT built here: the WebSocket transport devices actually
+  connect over, and the Android client itself — those are M08 Android
+  Gateway, a different tech stack (Kotlin/Android) this sandbox can't
+  build or verify (Gradle is present but there's no Android SDK
+  installed, `ANDROID_HOME` is unset).
 
 ### M06 - Queue (2026-07-09)
 
