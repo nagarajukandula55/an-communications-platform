@@ -12,7 +12,7 @@ import {
 } from '@acp/auth';
 import { DeviceService, InMemoryDeviceRepository } from '@acp/devices';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from './build-app.js';
+import { buildApp, type BuiltApp } from './build-app.js';
 import { issueDeviceToken } from './gateway.js';
 
 let app: FastifyInstance | undefined;
@@ -24,7 +24,9 @@ afterEach(async () => {
   }
 });
 
-async function startServer() {
+async function startServer(): Promise<
+  Omit<BuiltApp, 'app'> & { address: string; token: string; deviceId: string }
+> {
   const tokens = new TokenService({
     accessSecret: 'access-secret',
     refreshSecret: 'refresh-secret',
@@ -41,13 +43,20 @@ async function startServer() {
   const deviceTokens = new InMemoryDeviceTokenRepository();
   const devices = new DeviceService(new InMemoryDeviceRepository(), new EventBus());
 
-  app = await buildApp({ auth, devices, deviceTokens });
+  const built = await buildApp({ auth, devices, deviceTokens });
+  app = built.app;
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
 
   const device = await devices.register('org-1', 'Pixel 8');
   const token = await issueDeviceToken(deviceTokens, 'org-1', device.id);
 
-  return { address, token, deviceId: device.id };
+  return {
+    connections: built.connections,
+    smsDispatcher: built.smsDispatcher,
+    address,
+    token,
+    deviceId: device.id,
+  };
 }
 
 describe('gateway websocket', () => {
@@ -77,5 +86,63 @@ describe('gateway websocket', () => {
 
     expect(messages[0]).toMatchObject({ type: 'authenticated' });
     expect(messages[1]).toEqual({ type: 'heartbeat_ack' });
+  });
+
+  it('dispatches an SMS command to the device and resolves on its result', async () => {
+    const { address, token, deviceId, smsDispatcher } = await startServer();
+    const wsUrl = address.replace('http://', 'ws://') + '/gateway/ws';
+
+    const socket = new WebSocket(wsUrl);
+    const received: unknown[] = [];
+
+    await new Promise<void>((resolve, reject) => {
+      socket.on('open', () => {
+        socket.send(JSON.stringify({ type: 'auth', token }));
+      });
+      socket.on('message', (data: Buffer) => {
+        const parsed: unknown = JSON.parse(data.toString());
+        received.push(parsed);
+        if (received.length === 1) {
+          resolve();
+        }
+      });
+      socket.on('error', reject);
+    });
+
+    const dispatchPromise = smsDispatcher.sendSms(deviceId, {
+      to: '+10000000000',
+      body: 'hello',
+      messageId: 'msg-1',
+    });
+
+    const sendSmsMessage = await new Promise<{ messageId: string; to: string; body: string }>(
+      (resolve) => {
+        socket.once('message', (data: Buffer) => {
+          const parsed = JSON.parse(data.toString()) as {
+            messageId: string;
+            to: string;
+            body: string;
+          };
+          resolve(parsed);
+        });
+      },
+    );
+    expect(sendSmsMessage).toMatchObject({
+      type: 'send_sms',
+      to: '+10000000000',
+      body: 'hello',
+    });
+
+    socket.send(
+      JSON.stringify({
+        type: 'sms_result',
+        messageId: sendSmsMessage.messageId,
+        accepted: true,
+        providerRef: 'radio-42',
+      }),
+    );
+
+    await expect(dispatchPromise).resolves.toEqual({ providerRef: 'radio-42' });
+    socket.close();
   });
 });
