@@ -193,7 +193,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+🔄 In Progress (Authentication + Device Monitoring done; Queue Monitoring, Analytics, Live Logs, Message Tracking need backend endpoints that don't exist yet — placeholder pages ship instead)
 
 ---
 
@@ -360,16 +360,16 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.7
+0.8
 
 Current Milestone
 
-M09 SMS Transport
+M10 Dashboard
 
 Current Sprint
 
-Sprint 9
+Sprint 10
 
 Current Objective
 
-Build the M10 Dashboard: Next.js app for auth, device/queue monitoring, analytics, live logs, and message tracking.
+Build M11 OTP: generation and verification flows.

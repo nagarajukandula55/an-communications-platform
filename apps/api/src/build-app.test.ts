@@ -32,7 +32,7 @@ async function createApp() {
   );
   const deviceTokens = new InMemoryDeviceTokenRepository();
 
-  const { app } = await buildApp({ auth, devices, deviceTokens });
+  const { app } = await buildApp({ auth, tokens, devices, deviceTokens });
   return app;
 }
 
@@ -105,5 +105,35 @@ describe('API app', () => {
     });
 
     expect(login.statusCode).toBe(401);
+  });
+
+  it('rejects /devices without a bearer token', async () => {
+    const app = await createApp();
+    const response = await app.inject({ method: 'GET', url: '/devices' });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('lists devices for the authenticated organization', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/devices',
+      headers: { authorization: `Bearer ${registered.accessToken}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ devices: [] });
   });
 });
