@@ -11,7 +11,8 @@
     { "path": "../../packages/devices" },
     { "path": "../../packages/events" },
     { "path": "../../packages/logger" },
-    { "path": "../../packages/messaging" }
+    { "path": "../../packages/messaging" },
+    { "path": "../../packages/sms-transport" }
   ],
   "include": ["src"]
 }

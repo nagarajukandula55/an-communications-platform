@@ -8,13 +8,48 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.6
-- Next Milestone: M09 SMS Transport
+- Current Version: 0.7
+- Next Milestone: M10 Dashboard
 - Last Updated: 2026-07-09
 
 ---
 
 ## Completed
+
+### M09 - SMS Transport (2026-07-09)
+
+- New `@acp/sms-transport` package: `RoundRobinDeviceSelector` (priority/
+  load-spreading across a tenant's online devices), `AndroidGatewayTransport`
+  (implements the M05 `Transport` interface, dispatches via an injected
+  `DeviceCommandDispatcher`), `GsmModemTransport` (AT-command based, behind
+  an `AtCommandChannel` interface so it's testable without real modem
+  hardware — no real serial implementation included, same reasoning as
+  every other hardware/infra piece in this repo), and `CompositeSmsTransport`
+  (tries transports in priority order, falls back on failure — this is
+  the actual Failover + Priority Routing deliverable)
+- `apps/api` wiring: `ConnectionRegistry` maps deviceId -> live WebSocket;
+  `WsDeviceCommandDispatcher` implements `DeviceCommandDispatcher` by
+  pushing a `send_sms` message down the device's socket and resolving a
+  pending promise when the device replies with `sms_result` (with a
+  15s timeout -> `SmsDispatchTimeoutError`)
+- Extended the gateway WebSocket protocol (`gateway.ts`) both directions:
+  server -> device `send_sms`, device -> server `sms_result`
+  `{messageId, accepted, providerRef?, error?}`
+- `buildApp()` now returns `{app, connections, smsDispatcher}` instead of
+  just the Fastify instance, so callers (tests, `main.ts`) can reach the
+  dispatcher/registry directly
+- 10 new `@acp/sms-transport` tests, plus a new real end-to-end
+  `apps/api` test that authenticates a device over an actual socket, calls
+  `smsDispatcher.sendSms()`, asserts the device receives the correct
+  `send_sms` payload, replies with `sms_result`, and asserts the dispatch
+  promise resolves with the right `providerRef` — 11 apps/api tests total
+- `main.ts` now wires the full chain: `MessageRouter` -> `AndroidGatewayTransport`
+  -> `WsDeviceCommandDispatcher`, plus a `MessageService` backed by
+  Postgres + BullMQ, ready for HTTP endpoints to call (not yet exposed —
+  no `POST /messages` route exists yet, that's dashboard/SDK-adjacent
+  work) and a worker process to actually consume the queue (needs
+  `createMessageProcessor` from M06 run in `main.ts` or a separate
+  process — not wired yet, same live-infra caveat as everything else)
 
 ### M08 - Android Gateway (2026-07-09)
 

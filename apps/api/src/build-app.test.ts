@@ -32,7 +32,8 @@ async function createApp() {
   );
   const deviceTokens = new InMemoryDeviceTokenRepository();
 
-  return buildApp({ auth, devices, deviceTokens });
+  const { app } = await buildApp({ auth, devices, deviceTokens });
+  return app;
 }
 
 describe('API app', () => {

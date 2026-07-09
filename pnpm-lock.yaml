@@ -74,6 +74,9 @@ importers:
       '@acp/messaging':
         specifier: workspace:*
         version: link:../../packages/messaging
+      '@acp/sms-transport':
+        specifier: workspace:*
+        version: link:../../packages/sms-transport
       '@fastify/websocket':
         specifier: ^11.0.2
         version: 11.3.0
@@ -216,6 +219,19 @@ importers:
         version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(tsx@4.23.0)(yaml@2.9.0)
 
   packages/shared:
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/sms-transport:
+    dependencies:
+      '@acp/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       vitest:
         specifier: ^3.2.4

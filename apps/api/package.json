@@ -23,6 +23,7 @@
     "@acp/events": "workspace:*",
     "@acp/logger": "workspace:*",
     "@acp/messaging": "workspace:*",
+    "@acp/sms-transport": "workspace:*",
     "@fastify/websocket": "^11.0.2",
     "fastify": "^5.2.1"
   },

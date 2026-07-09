@@ -34,20 +34,40 @@ export async function authenticateDeviceToken(
 
 export type GatewayInboundMessage =
   | { readonly type: 'auth'; readonly token: string }
-  | { readonly type: 'heartbeat' };
+  | { readonly type: 'heartbeat' }
+  | {
+      readonly type: 'sms_result';
+      readonly messageId: string;
+      readonly accepted: boolean;
+      readonly providerRef?: string;
+      readonly error?: string;
+    };
 
 export type GatewayOutboundMessage =
   | { readonly type: 'authenticated'; readonly deviceId: string }
   | { readonly type: 'heartbeat_ack' }
-  | { readonly type: 'error'; readonly message: string };
+  | { readonly type: 'error'; readonly message: string }
+  | {
+      readonly type: 'send_sms';
+      readonly messageId: string;
+      readonly to: string;
+      readonly body: string;
+    };
 
 export interface GatewayConnectionState {
   deviceId?: string;
 }
 
+export interface SmsResultEvent {
+  readonly accepted: boolean;
+  readonly providerRef?: string;
+  readonly error?: string;
+}
+
 export interface GatewayDeps {
   readonly deviceTokens: DeviceTokenRepository;
   readonly devices: DeviceService;
+  readonly onSmsResult?: (messageId: string, result: SmsResultEvent) => void;
 }
 
 export interface GatewayResult {
@@ -62,7 +82,9 @@ function parseInboundMessage(raw: string): GatewayInboundMessage | undefined {
       typeof parsed === 'object' &&
       parsed !== null &&
       'type' in parsed &&
-      (parsed.type === 'auth' || parsed.type === 'heartbeat')
+      (parsed.type === 'auth' ||
+        parsed.type === 'heartbeat' ||
+        parsed.type === 'sms_result')
     ) {
       return parsed as GatewayInboundMessage;
     }
@@ -103,6 +125,16 @@ export async function handleGatewayMessage(
       shouldClose: true,
     };
   }
-  await deps.devices.heartbeat(state.deviceId);
-  return { reply: { type: 'heartbeat_ack' } };
+
+  if (message.type === 'heartbeat') {
+    await deps.devices.heartbeat(state.deviceId);
+    return { reply: { type: 'heartbeat_ack' } };
+  }
+
+  deps.onSmsResult?.(message.messageId, {
+    accepted: message.accepted,
+    ...(message.providerRef !== undefined ? { providerRef: message.providerRef } : {}),
+    ...(message.error !== undefined ? { error: message.error } : {}),
+  });
+  return {};
 }

@@ -7,15 +7,23 @@ import {
   type DeviceTokenRepository,
 } from '@acp/auth';
 import type { DeviceService } from '@acp/devices';
+import { ConnectionRegistry } from './connection-registry.js';
 import {
   handleGatewayMessage,
   type GatewayConnectionState,
 } from './gateway.js';
+import { WsDeviceCommandDispatcher } from './ws-device-command-dispatcher.js';
 
 export interface AppDeps {
   readonly auth: AuthService;
   readonly devices: DeviceService;
   readonly deviceTokens: DeviceTokenRepository;
+}
+
+export interface BuiltApp {
+  readonly app: FastifyInstance;
+  readonly connections: ConnectionRegistry;
+  readonly smsDispatcher: WsDeviceCommandDispatcher;
 }
 
 interface RegisterBody {
@@ -34,9 +42,12 @@ interface RefreshBody {
   readonly refreshToken: string;
 }
 
-export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
+export async function buildApp(deps: AppDeps): Promise<BuiltApp> {
   const app = Fastify({ logger: false });
   await app.register(websocketPlugin);
+
+  const connections = new ConnectionRegistry();
+  const smsDispatcher = new WsDeviceCommandDispatcher({ registry: connections });
 
   app.get('/health', () => ({ status: 'ok' }));
 
@@ -83,16 +94,37 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     const state: GatewayConnectionState = {};
 
     socket.on('message', (raw: Buffer) => {
-      void handleGatewayMessage(deps, state, raw.toString()).then((result) => {
+      void handleGatewayMessage(
+        {
+          ...deps,
+          onSmsResult: (messageId, result) => {
+            smsDispatcher.handleSmsResult(messageId, result);
+          },
+        },
+        state,
+        raw.toString(),
+      ).then((result) => {
+        if (state.deviceId) {
+          connections.register(state.deviceId, socket);
+        }
         if (result.reply) {
           socket.send(JSON.stringify(result.reply));
+        }
+        if (result.shouldClose && state.deviceId) {
+          connections.unregister(state.deviceId);
         }
         if (result.shouldClose) {
           socket.close();
         }
       });
     });
+
+    socket.on('close', () => {
+      if (state.deviceId) {
+        connections.unregister(state.deviceId);
+      }
+    });
   });
 
-  return app;
+  return { app, connections, smsDispatcher };
 }

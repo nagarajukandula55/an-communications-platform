@@ -103,6 +103,9 @@
       "@acp/devices": [
         "packages/devices/src"
       ],
+      "@acp/sms-transport": [
+        "packages/sms-transport/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],

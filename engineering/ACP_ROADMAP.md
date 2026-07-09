@@ -156,7 +156,7 @@ Deliverables
 
 Status
 
-🔄 In Progress (Device Registration, WebSocket, Authentication, Heartbeat done; SMS Sending/Receiving/Delivery Reports land in M09)
+🔄 In Progress (Device Registration, WebSocket, Authentication, Heartbeat, SMS Sending done via M09; inbound SMS/delivery-report forwarding from the Android app is still a TODO — see apps/android-gateway/README.md)
 
 ---
 
@@ -174,7 +174,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+✅ Complete
 
 ---
 
@@ -360,16 +360,16 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.5
+0.7
 
 Current Milestone
 
-M05 Messaging Core
+M09 SMS Transport
 
 Current Sprint
 
-Sprint 5
+Sprint 9
 
 Current Objective
 
-Build the BullMQ-backed Queue milestone (M06): dead-letter handling and worker wiring on top of the M05 queue abstraction.
+Build the M10 Dashboard: Next.js app for auth, device/queue monitoring, analytics, live logs, and message tracking.
