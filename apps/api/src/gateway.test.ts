@@ -90,4 +90,52 @@ describe('handleGatewayMessage', () => {
     const stored = await deps.deviceRepository.findById(deps.device.id);
     expect(stored?.status).toBe('online');
   });
+
+  it('rejects sms_received before authentication', async () => {
+    const deps = await createDeps();
+    const state: GatewayConnectionState = {};
+
+    const result = await handleGatewayMessage(
+      deps,
+      state,
+      JSON.stringify({
+        type: 'sms_received',
+        from: '+15551234567',
+        body: 'hello',
+        receivedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+
+    expect(result.reply).toEqual({ type: 'error', message: 'Not authenticated' });
+    expect(result.shouldClose).toBe(true);
+  });
+
+  it('forwards an authenticated sms_received message to onSmsReceived', async () => {
+    const deps = await createDeps();
+    const state: GatewayConnectionState = { deviceId: deps.device.id };
+    const received: unknown[] = [];
+
+    const result = await handleGatewayMessage(
+      { ...deps, onSmsReceived: (deviceId, message) => received.push({ deviceId, message }) },
+      state,
+      JSON.stringify({
+        type: 'sms_received',
+        from: '+15551234567',
+        body: 'hello',
+        receivedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+
+    expect(result.reply).toBeUndefined();
+    expect(received).toEqual([
+      {
+        deviceId: deps.device.id,
+        message: {
+          from: '+15551234567',
+          body: 'hello',
+          receivedAt: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    ]);
+  });
 });

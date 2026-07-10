@@ -41,6 +41,12 @@ export type GatewayInboundMessage =
       readonly accepted: boolean;
       readonly providerRef?: string;
       readonly error?: string;
+    }
+  | {
+      readonly type: 'sms_received';
+      readonly from: string;
+      readonly body: string;
+      readonly receivedAt: string;
     };
 
 export type GatewayOutboundMessage =
@@ -64,10 +70,17 @@ export interface SmsResultEvent {
   readonly error?: string;
 }
 
+export interface InboundSmsEvent {
+  readonly from: string;
+  readonly body: string;
+  readonly receivedAt: string;
+}
+
 export interface GatewayDeps {
   readonly deviceTokens: DeviceTokenRepository;
   readonly devices: DeviceService;
   readonly onSmsResult?: (messageId: string, result: SmsResultEvent) => void;
+  readonly onSmsReceived?: (deviceId: string, message: InboundSmsEvent) => void;
 }
 
 export interface GatewayResult {
@@ -84,7 +97,8 @@ function parseInboundMessage(raw: string): GatewayInboundMessage | undefined {
       'type' in parsed &&
       (parsed.type === 'auth' ||
         parsed.type === 'heartbeat' ||
-        parsed.type === 'sms_result')
+        parsed.type === 'sms_result' ||
+        parsed.type === 'sms_received')
     ) {
       return parsed as GatewayInboundMessage;
     }
@@ -131,10 +145,19 @@ export async function handleGatewayMessage(
     return { reply: { type: 'heartbeat_ack' } };
   }
 
-  deps.onSmsResult?.(message.messageId, {
-    accepted: message.accepted,
-    ...(message.providerRef !== undefined ? { providerRef: message.providerRef } : {}),
-    ...(message.error !== undefined ? { error: message.error } : {}),
+  if (message.type === 'sms_result') {
+    deps.onSmsResult?.(message.messageId, {
+      accepted: message.accepted,
+      ...(message.providerRef !== undefined ? { providerRef: message.providerRef } : {}),
+      ...(message.error !== undefined ? { error: message.error } : {}),
+    });
+    return {};
+  }
+
+  deps.onSmsReceived?.(state.deviceId, {
+    from: message.from,
+    body: message.body,
+    receivedAt: message.receivedAt,
   });
   return {};
 }
