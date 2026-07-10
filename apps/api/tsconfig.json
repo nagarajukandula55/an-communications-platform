@@ -10,11 +10,15 @@
     { "path": "../../packages/config" },
     { "path": "../../packages/database" },
     { "path": "../../packages/devices" },
+    { "path": "../../packages/email-transport" },
     { "path": "../../packages/events" },
     { "path": "../../packages/integrations" },
     { "path": "../../packages/logger" },
     { "path": "../../packages/messaging" },
-    { "path": "../../packages/sms-transport" }
+    { "path": "../../packages/push-transport" },
+    { "path": "../../packages/sms-transport" },
+    { "path": "../../packages/voice-transport" },
+    { "path": "../../packages/whatsapp-transport" }
   ],
   "include": ["src"]
 }

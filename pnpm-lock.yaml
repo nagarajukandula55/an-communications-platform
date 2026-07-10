@@ -68,6 +68,9 @@ importers:
       '@acp/devices':
         specifier: workspace:*
         version: link:../../packages/devices
+      '@acp/email-transport':
+        specifier: workspace:*
+        version: link:../../packages/email-transport
       '@acp/events':
         specifier: workspace:*
         version: link:../../packages/events
@@ -80,9 +83,18 @@ importers:
       '@acp/messaging':
         specifier: workspace:*
         version: link:../../packages/messaging
+      '@acp/push-transport':
+        specifier: workspace:*
+        version: link:../../packages/push-transport
       '@acp/sms-transport':
         specifier: workspace:*
         version: link:../../packages/sms-transport
+      '@acp/voice-transport':
+        specifier: workspace:*
+        version: link:../../packages/voice-transport
+      '@acp/whatsapp-transport':
+        specifier: workspace:*
+        version: link:../../packages/whatsapp-transport
       '@fastify/websocket':
         specifier: ^11.0.2
         version: 11.3.0
@@ -241,6 +253,25 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
 
+  packages/email-transport:
+    dependencies:
+      '@acp/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
+      nodemailer:
+        specifier: ^6.9.16
+        version: 6.10.1
+    devDependencies:
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.24
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
   packages/events:
     dependencies:
       '@acp/types':
@@ -292,6 +323,25 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
 
+  packages/push-transport:
+    dependencies:
+      '@acp/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.3
+    devDependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
   packages/sdk:
     dependencies:
       '@acp/types':
@@ -322,6 +372,32 @@ importers:
         version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
 
   packages/types:
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/voice-transport:
+    dependencies:
+      '@acp/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/whatsapp-transport:
+    dependencies:
+      '@acp/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       vitest:
         specifier: ^3.2.4
@@ -1162,6 +1238,9 @@ packages:
 
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
+
+  '@types/nodemailer@6.4.24':
+    resolution: {integrity: sha512-Ww4u0rT9wQNXh4JiQaIwx3QWdcOFXzOjQA2zc+jtFYNmQiT4mIUqcDin51bDFdkzKubFnQCZNK7FIHlPKQ/q9w==}
 
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
@@ -2231,6 +2310,10 @@ packages:
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
+
+  nodemailer@6.10.1:
+    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -3663,6 +3746,10 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
+  '@types/nodemailer@6.4.24':
+    dependencies:
+      '@types/node': 24.13.3
+
   '@types/pg@8.20.0':
     dependencies:
       '@types/node': 24.13.3
@@ -4802,6 +4889,8 @@ snapshots:
     optional: true
 
   node-releases@2.0.51: {}
+
+  nodemailer@6.10.1: {}
 
   normalize-path@3.0.0: {}
 

@@ -8,13 +8,61 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.8
-- Next Milestone: M13 Email
+- Current Version: 0.9
+- Next Milestone: M17 SDK/Developer Experience
 - Last Updated: 2026-07-10
 
 ---
 
 ## Completed
+
+### M13-M16 - Email, Push, WhatsApp, Voice (2026-07-10)
+
+Built together since all four needed the same foundation: per-organization
+provider credentials. That foundation landed as a separate commit just
+before this one — `@acp/integrations` (AES-256-GCM at rest, Postgres +
+in-memory repos, `GET`/`PUT /integrations/:provider` on `apps/api`, a
+generic settings form on the dashboard driven by `INTEGRATION_FIELD_SPECS`
+so a new provider field never needs new UI code).
+
+**M13 Email** — `@acp/email-transport`: `EmailTransport` (channel `email`)
+using `nodemailer`, `Mailer` interface for testability, subject taken from
+`message.metadata.subject` or a default. 3 tests.
+
+**M14 Push** — `@acp/push-transport`: `PushTransport` (channel `push`)
+routes on `message.metadata.platform` (`'android'` -> `FcmSender`, `'ios'`
+-> `ApnsSender`). Both senders are real implementations, not stubs:
+- `FcmSender`: signs an RS256 JWT with the service account key, exchanges
+  it for an OAuth2 access token at Google's token endpoint, then POSTs to
+  the FCM v1 send API
+- `ApnsSender`: signs an ES256 JWT (team ID + key ID), POSTs to Apple's
+  HTTP/2 endpoint with the `apns-topic` header
+- Tests use real generated RSA/EC key pairs (`crypto.generateKeyPairSync`)
+  so the actual JWT signing code runs, with a fake `fetch` capturing the
+  request. 8 tests total.
+
+**M15 WhatsApp** — `@acp/whatsapp-transport`: `WhatsAppTransport` (channel
+`whatsapp`) posts to the WhatsApp Cloud API (`messaging_product`,
+`to`, `type: 'text'`). 3 tests.
+
+**M16 Voice** — `@acp/voice-transport`: `VoiceTransport` (channel `voice`)
+places a call via a generic REST voice-provider API (`message.body` as
+the spoken/IVR script). Documented explicitly in `types.ts`: this is a
+REST-gateway pattern like every major provider's public API (and what
+self-hosted SIP gateways like Asterisk/FreeSWITCH expose too) —
+hand-rolling a real SIP user agent (INVITE/ACK/BYE, SDP, RTP) is a
+different scale of project and unverifiable without a real SIP trunk, so
+it was not attempted. 3 tests.
+
+All four transports are wired into `apps/api`'s `main.ts`, registered on
+the shared `MessageRouter` alongside the SMS transport from M09, each
+backed by an adapter reading its config from `IntegrationsService`.
+
+17 new tests across the four channel packages; `@acp/integrations` added
+6 more when it landed. Every one of these packages passes `pnpm verify`
+(including two real `next build` re-runs after wiring the dashboard
+settings page and confirming the `@acp/integrations/types` subpath split
+didn't regress).
 
 ### M12 - Analytics (2026-07-10)
 

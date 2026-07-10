@@ -112,6 +112,18 @@
       "@acp/integrations": [
         "packages/integrations/src"
       ],
+      "@acp/email-transport": [
+        "packages/email-transport/src"
+      ],
+      "@acp/push-transport": [
+        "packages/push-transport/src"
+      ],
+      "@acp/whatsapp-transport": [
+        "packages/whatsapp-transport/src"
+      ],
+      "@acp/voice-transport": [
+        "packages/voice-transport/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],

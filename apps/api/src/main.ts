@@ -36,6 +36,10 @@ import {
   IntegrationsService,
   PostgresIntegrationRepository,
 } from '@acp/integrations';
+import { EmailTransport } from '@acp/email-transport';
+import { PushTransport } from '@acp/push-transport';
+import { WhatsAppTransport } from '@acp/whatsapp-transport';
+import { VoiceTransport } from '@acp/voice-transport';
 import { buildApp } from './build-app.js';
 
 async function main(): Promise<void> {
@@ -109,6 +113,102 @@ async function main(): Promise<void> {
       smsDispatcher,
       new RoundRobinDeviceSelector(),
     ),
+  );
+
+  router.register(
+    new EmailTransport({
+      configProvider: {
+        getConfig: async (tenantId) => {
+          const config = await integrations.getConfig(tenantId, 'smtp');
+          if (!config?.['host'] || !config['fromAddress']) {
+            return undefined;
+          }
+          return {
+            host: config['host'],
+            port: Number(config['port'] ?? '587'),
+            fromAddress: config['fromAddress'],
+            ...(config['username'] ? { username: config['username'] } : {}),
+            ...(config['password'] ? { password: config['password'] } : {}),
+          };
+        },
+      },
+    }),
+  );
+
+  router.register(
+    new PushTransport({
+      configProvider: {
+        getFcmConfig: async (tenantId) => {
+          const config = await integrations.getConfig(tenantId, 'fcm');
+          if (!config?.['projectId'] || !config['clientEmail'] || !config['privateKey']) {
+            return undefined;
+          }
+          return {
+            projectId: config['projectId'],
+            clientEmail: config['clientEmail'],
+            privateKey: config['privateKey'],
+          };
+        },
+        getApnsConfig: async (tenantId) => {
+          const config = await integrations.getConfig(tenantId, 'apns');
+          if (
+            !config?.['teamId'] ||
+            !config['keyId'] ||
+            !config['bundleId'] ||
+            !config['privateKey']
+          ) {
+            return undefined;
+          }
+          return {
+            teamId: config['teamId'],
+            keyId: config['keyId'],
+            bundleId: config['bundleId'],
+            privateKey: config['privateKey'],
+          };
+        },
+      },
+    }),
+  );
+
+  router.register(
+    new WhatsAppTransport({
+      configProvider: {
+        getConfig: async (tenantId) => {
+          const config = await integrations.getConfig(tenantId, 'whatsapp');
+          if (!config?.['phoneNumberId'] || !config['accessToken']) {
+            return undefined;
+          }
+          return {
+            phoneNumberId: config['phoneNumberId'],
+            accessToken: config['accessToken'],
+          };
+        },
+      },
+    }),
+  );
+
+  router.register(
+    new VoiceTransport({
+      configProvider: {
+        getConfig: async (tenantId) => {
+          const config = await integrations.getConfig(tenantId, 'voice');
+          if (
+            !config?.['apiBaseUrl'] ||
+            !config['accountId'] ||
+            !config['apiKey'] ||
+            !config['callerNumber']
+          ) {
+            return undefined;
+          }
+          return {
+            apiBaseUrl: config['apiBaseUrl'],
+            accountId: config['accountId'],
+            apiKey: config['apiKey'],
+            callerNumber: config['callerNumber'],
+          };
+        },
+      },
+    }),
   );
 
   const redisUrl = new URL(config.REDIS_URL);

@@ -360,16 +360,16 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.8
+0.9
 
 Current Milestone
 
-M12 Analytics
+M16 Voice
 
 Current Sprint
 
-Sprint 12
+Sprint 16
 
 Current Objective
 
-Build M13 Email: SMTP/IMAP transport, domains, templates, attachments, queue.
+Build M17 Developer Experience: SDK, CLI, docs, examples, webhooks, OpenAPI, Postman collection.
