@@ -22,6 +22,11 @@ const NAV_ITEMS = [
     label: 'Integration Settings',
     description: 'Configure SMTP, push, WhatsApp, and voice provider credentials.',
   },
+  {
+    href: '/webhooks',
+    label: 'Webhooks',
+    description: 'Subscribe endpoints to message and device events.',
+  },
 ] as const;
 
 export default function HomePage() {

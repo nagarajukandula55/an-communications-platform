@@ -141,6 +141,9 @@ importers:
       '@acp/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@acp/webhooks':
+        specifier: workspace:*
+        version: link:../../packages/webhooks
       next:
         specifier: ^15.1.3
         version: 15.5.20(@opentelemetry/api@1.9.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
