@@ -106,6 +106,9 @@
       "@acp/sms-transport": [
         "packages/sms-transport/src"
       ],
+      "@acp/sso-client": [
+        "packages/sso-client/src"
+      ],
       "@acp/analytics": [
         "packages/analytics/src"
       ],

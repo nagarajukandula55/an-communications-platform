@@ -18,6 +18,7 @@
     { "path": "../../packages/push-transport" },
     { "path": "../../packages/shared" },
     { "path": "../../packages/sms-transport" },
+    { "path": "../../packages/sso-client" },
     { "path": "../../packages/voice-transport" },
     { "path": "../../packages/webhooks" },
     { "path": "../../packages/whatsapp-transport" }
