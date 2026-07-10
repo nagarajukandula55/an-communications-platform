@@ -138,6 +138,9 @@
       ],
       "@acp/sdk": [
         "packages/sdk/src"
+      ],
+      "@acp/sso-client": [
+        "packages/sso-client/src"
       ]
     }
   },
