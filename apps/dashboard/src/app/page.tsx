@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   {
     href: '/analytics',
     label: 'Analytics',
-    description: 'Coming soon — needs an analytics endpoint on the API.',
+    description: 'Message delivery totals by status and channel.',
   },
   {
     href: '/logs',

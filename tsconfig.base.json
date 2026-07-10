@@ -106,6 +106,9 @@
       "@acp/sms-transport": [
         "packages/sms-transport/src"
       ],
+      "@acp/analytics": [
+        "packages/analytics/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],

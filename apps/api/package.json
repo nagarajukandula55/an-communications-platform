@@ -16,6 +16,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@acp/analytics": "workspace:*",
     "@acp/auth": "workspace:*",
     "@acp/config": "workspace:*",
     "@acp/database": "workspace:*",

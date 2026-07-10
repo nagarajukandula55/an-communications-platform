@@ -8,6 +8,7 @@ import {
   type DeviceTokenRepository,
   type TokenService,
 } from '@acp/auth';
+import type { AnalyticsRepository } from '@acp/analytics';
 import type { DeviceService } from '@acp/devices';
 import { ConnectionRegistry } from './connection-registry.js';
 import {
@@ -21,6 +22,7 @@ export interface AppDeps {
   readonly tokens: TokenService;
   readonly devices: DeviceService;
   readonly deviceTokens: DeviceTokenRepository;
+  readonly analytics: AnalyticsRepository;
 }
 
 export interface BuiltApp {
@@ -106,6 +108,16 @@ export async function buildApp(deps: AppDeps): Promise<BuiltApp> {
       const claims = requireAuth(request);
       const devices = await deps.devices.list(claims.organizationId);
       await reply.send({ devices });
+    } catch {
+      await reply.code(401).send({ message: 'Unauthorized' });
+    }
+  });
+
+  app.get('/analytics', async (request, reply) => {
+    try {
+      const claims = requireAuth(request);
+      const stats = await deps.analytics.getDeliveryStats(claims.organizationId);
+      await reply.send(stats);
     } catch {
       await reply.code(401).send({ message: 'Unauthorized' });
     }

@@ -9,12 +9,28 @@ and update it before finishing.
 ## Status
 
 - Current Version: 0.8
-- Next Milestone: M12 Analytics
-- Last Updated: 2026-07-09
+- Next Milestone: M13 Email
+- Last Updated: 2026-07-10
 
 ---
 
 ## Completed
+
+### M12 - Analytics (2026-07-10)
+
+- New `@acp/analytics` package: `computeDeliveryStats()` (pure function —
+  total, counts by `MessageStatus`, counts by `Channel`, optional date
+  range filter), `InMemoryAnalyticsRepository` (tested), and
+  `PostgresAnalyticsRepository` (two `GROUP BY` queries against the
+  `messages` table `@acp/messaging` already created in M05 — no new
+  schema needed)
+- New `GET /analytics` on `apps/api`, auth-required via the same
+  `requireAuth()` helper as `/devices`
+- Dashboard's `/analytics` page is now real (was a placeholder since
+  M10): fetches the endpoint, renders total + by-status + by-channel.
+  `next build` still passes (verified, not just typechecked)
+- 4 new `@acp/analytics` tests, 2 new `apps/api` tests (401 without a
+  token, 200 with real stats) — `apps/api` now at 14 tests
 
 ### M11 - OTP (2026-07-09)
 
