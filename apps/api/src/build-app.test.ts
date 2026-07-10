@@ -44,15 +44,10 @@ async function createApp() {
   );
   const webhooks = new InMemoryWebhookRepository();
 
-  const { app } = await buildApp({
-    auth,
-    tokens,
-    devices,
-    deviceTokens,
-    analytics,
-    integrations,
-    webhooks,
-  });
+  const { app } = await buildApp(
+    { auth, tokens, devices, deviceTokens, analytics, integrations, webhooks },
+    { rateLimit: false },
+  );
   return app;
 }
 
@@ -63,6 +58,17 @@ describe('API app', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ status: 'ok' });
+  });
+
+  it('exposes Prometheus metrics including a request for /health', async () => {
+    const app = await createApp();
+    await app.inject({ method: 'GET', url: '/health' });
+
+    const response = await app.inject({ method: 'GET', url: '/metrics' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('acp_http_requests_total');
+    expect(response.body).toContain('route="/health"');
   });
 
   it('registers, logs in, and refreshes a session', async () => {
@@ -322,5 +328,56 @@ describe('API app', () => {
     });
 
     expect(response.statusCode).toBe(400);
+  });
+
+  it('rate-limits repeated /auth/login attempts', async () => {
+    const tokens = new TokenService({
+      accessSecret: 'access-secret',
+      refreshSecret: 'refresh-secret',
+      accessExpiresIn: '15m',
+      refreshExpiresIn: '30d',
+    });
+    const auth = new AuthService({
+      users: new InMemoryUserRepository(),
+      organizations: new InMemoryOrganizationRepository(),
+      apiKeys: new InMemoryApiKeyRepository(),
+      refreshTokens: new InMemoryRefreshTokenRepository(),
+      tokens,
+    });
+    const devices = new DeviceService(new InMemoryDeviceRepository(), new EventBus());
+    const deviceTokens = new InMemoryDeviceTokenRepository();
+    const analytics = new InMemoryAnalyticsRepository([]);
+    const integrations = new IntegrationsService(new InMemoryIntegrationRepository(), {
+      encryptionSecret: 'test-secret',
+    });
+    const webhooks = new InMemoryWebhookRepository();
+
+    const { app } = await buildApp(
+      { auth, tokens, devices, deviceTokens, analytics, integrations, webhooks },
+      { rateLimit: true },
+    );
+
+    const payload = {
+      organizationId: 'org-1',
+      email: 'nobody@acme.test',
+      password: 'wrong',
+    };
+
+    const responses = [];
+    for (let i = 0; i < 6; i++) {
+      responses.push(await app.inject({ method: 'POST', url: '/auth/login', payload }));
+    }
+
+    expect(responses.slice(0, 5).every((response) => response.statusCode === 401)).toBe(
+      true,
+    );
+    expect(responses[5]?.statusCode).toBe(429);
+  });
+
+  it('sends security headers via helmet', async () => {
+    const app = await createApp();
+    const response = await app.inject({ method: 'GET', url: '/health' });
+
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
   });
 });

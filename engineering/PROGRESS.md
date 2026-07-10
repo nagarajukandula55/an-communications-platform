@@ -8,13 +8,88 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 0.9
-- Next Milestone: M18 Production Hardening
+- Current Version: 1.0
+- Next Milestone: none — M01 through M18 are all complete
 - Last Updated: 2026-07-10
 
 ---
 
+## v1.0: what's real vs. what's unverified
+
+Every commit in this log passed `pnpm verify` (lint + typecheck + test +
+build) at the time it was made — that's genuinely true throughout. But
+"passes in this sandbox" is not the same as "proven correct in
+production." Read this section before treating v1.0 as done-done:
+
+- **Genuinely verified**: all TypeScript packages and `apps/api`/
+  `apps/dashboard` — including a real `next build` every time the
+  dashboard changed, a real end-to-end WebSocket test in `apps/api`
+  (binds an actual port, connects a real `ws` client), real JWT
+  signing with generated key pairs in the push-transport tests, and a
+  real rate-limit test that hits `/auth/login` 6 times and checks for
+  a 429 on the 6th.
+- **Structurally complete, never run against live infra**: every
+  `main.ts` wiring (Postgres, Redis/BullMQ, the full transport router)
+  — this sandbox never had a live Postgres or Redis to connect to, so
+  none of that has been exercised end-to-end. The M03 Docker Compose
+  stack itself was only validated with `docker compose config`
+  (schema/interpolation), never `docker compose up` (no Docker daemon
+  in this sandbox, only the CLI).
+- **Explicitly unverified by design, not oversight**: the Android app
+  (`apps/android-gateway`) — no Android SDK in this sandbox, written per
+  your explicit instruction to proceed anyway. See its README for what
+  still needs building (inbound SMS/delivery-report forwarding, a
+  pairing UI).
+- **Can't be verified without real credentials**: the Email/Push/
+  WhatsApp/Voice transports have real, tested logic (SMTP send via
+  nodemailer, real FCM OAuth2 + APNs JWT signing, WhatsApp Cloud API,
+  a generic voice-provider REST call) but none has ever talked to a
+  real SMTP server, Firebase project, Apple account, WhatsApp Business
+  account, or voice provider. That's what `/settings` in the dashboard
+  is for — plug in real credentials and they should work, but "should"
+  is doing real work in that sentence until someone tries it.
+
+Before calling this a real v1.0: run `pnpm infra:up` and confirm the
+Docker Compose stack actually comes up healthy; point `apps/api` at it
+and confirm `main.ts` actually connects; open `apps/android-gateway` in
+Android Studio and fix whatever the build turns up; and test each
+channel transport against one real account per provider.
+
+---
+
 ## Completed
+
+### M18 - Production Hardening (2026-07-10)
+
+- **Security**: `@fastify/helmet` (security headers — verified via a
+  test checking `x-content-type-options: nosniff`), `@fastify/rate-limit`
+  (100 req/min global, 5 req/min on `/auth/*` — verified with a real
+  test that hits `/auth/login` 6 times and checks the 6th is a 429, not
+  just checking the plugin is registered), JSON schema validation on
+  auth request bodies (rejects malformed payloads before they reach
+  `AuthService`), and a `pnpm audit --audit-level=high` step added to CI
+  (non-blocking for now — `continue-on-error: true` — so it surfaces
+  findings without breaking builds on transitive-dependency noise).
+- **Monitoring**: `GET /metrics` on `apps/api` via `prom-client` —
+  default Node process metrics plus `acp_http_requests_total` and
+  `acp_http_request_duration_seconds` recorded on every request via an
+  `onResponse` hook. This is exactly what M03's
+  `infrastructure/observability/prometheus.yml` already expected at
+  `acp-api:/metrics` — that job existed since M03 with nothing to
+  scrape until now.
+- **High Availability**: graceful shutdown in `main.ts` — `SIGTERM`/
+  `SIGINT` close the Fastify server, the BullMQ queue connection, and
+  the Postgres pool before exiting, instead of dropping in-flight
+  requests and connections.
+- **Performance**: not meaningfully addressed beyond what earlier
+  milestones already had (Postgres connection pooling via `pg.Pool`,
+  Redis-backed queue). No load testing was done — there's no running
+  infra in this sandbox to load-test against.
+- `buildApp()` gained an options parameter (`{ rateLimit?: boolean }`,
+  default enabled) so tests can disable rate limiting for the many
+  rapid requests a test suite makes, while production and the one
+  dedicated rate-limit test both exercise it for real.
+- apps/api now at 21 tests (3 new: metrics, helmet headers, rate limit).
 
 ### M17 - Developer Experience (2026-07-10)
 

@@ -234,7 +234,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+✅ Complete
 
 ---
 
@@ -360,16 +360,21 @@ ACP is considered successful when it can:
 
 Current Version
 
-0.9
+1.0
 
 Current Milestone
 
-M17 Developer Experience
+M18 Production Hardening
 
 Current Sprint
 
-Sprint 17
+Sprint 18
 
 Current Objective
 
-Build M18 Production Hardening: security review, performance, high availability - the last milestone before v1.0.
+M01-M18 complete. Next: real infra validation (live Docker Compose smoke
+test, live Postgres/Redis/BullMQ run), Android app verification on a
+real SDK/emulator, and real provider credentials for Email/Push/
+WhatsApp/Voice — everything this build could not verify in a sandbox
+without those dependencies. See engineering/PROGRESS.md for the full
+per-milestone list of what's genuinely unverified.
