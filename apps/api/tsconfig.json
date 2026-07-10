@@ -11,6 +11,7 @@
     { "path": "../../packages/database" },
     { "path": "../../packages/devices" },
     { "path": "../../packages/events" },
+    { "path": "../../packages/integrations" },
     { "path": "../../packages/logger" },
     { "path": "../../packages/messaging" },
     { "path": "../../packages/sms-transport" }

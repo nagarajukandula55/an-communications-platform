@@ -71,6 +71,9 @@ importers:
       '@acp/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@acp/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@acp/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -102,6 +105,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@acp/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@acp/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -240,6 +246,19 @@ importers:
       '@acp/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/integrations:
+    dependencies:
+      '@acp/database':
+        specifier: workspace:*
+        version: link:../database
+      '@acp/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       vitest:
         specifier: ^3.2.4

@@ -12,6 +12,10 @@ import {
   TokenService,
 } from '@acp/auth';
 import { DeviceService, InMemoryDeviceRepository } from '@acp/devices';
+import {
+  InMemoryIntegrationRepository,
+  IntegrationsService,
+} from '@acp/integrations';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, type BuiltApp } from './build-app.js';
 import { issueDeviceToken } from './gateway.js';
@@ -44,8 +48,19 @@ async function startServer(): Promise<
   const deviceTokens = new InMemoryDeviceTokenRepository();
   const devices = new DeviceService(new InMemoryDeviceRepository(), new EventBus());
   const analytics = new InMemoryAnalyticsRepository([]);
+  const integrations = new IntegrationsService(
+    new InMemoryIntegrationRepository(),
+    { encryptionSecret: 'test-secret' },
+  );
 
-  const built = await buildApp({ auth, tokens, devices, deviceTokens, analytics });
+  const built = await buildApp({
+    auth,
+    tokens,
+    devices,
+    deviceTokens,
+    analytics,
+    integrations,
+  });
   app = built.app;
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
 

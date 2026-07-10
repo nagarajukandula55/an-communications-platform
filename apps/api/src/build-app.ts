@@ -10,6 +10,11 @@ import {
 } from '@acp/auth';
 import type { AnalyticsRepository } from '@acp/analytics';
 import type { DeviceService } from '@acp/devices';
+import {
+  INTEGRATION_FIELD_SPECS,
+  type IntegrationProvider,
+  type IntegrationsService,
+} from '@acp/integrations';
 import { ConnectionRegistry } from './connection-registry.js';
 import {
   handleGatewayMessage,
@@ -23,6 +28,13 @@ export interface AppDeps {
   readonly devices: DeviceService;
   readonly deviceTokens: DeviceTokenRepository;
   readonly analytics: AnalyticsRepository;
+  readonly integrations: IntegrationsService;
+}
+
+const VALID_PROVIDERS = new Set(Object.keys(INTEGRATION_FIELD_SPECS));
+
+function isIntegrationProvider(value: string): value is IntegrationProvider {
+  return VALID_PROVIDERS.has(value);
 }
 
 export interface BuiltApp {
@@ -122,6 +134,45 @@ export async function buildApp(deps: AppDeps): Promise<BuiltApp> {
       await reply.code(401).send({ message: 'Unauthorized' });
     }
   });
+
+  app.get<{ Params: { provider: string } }>(
+    '/integrations/:provider',
+    async (request, reply) => {
+      try {
+        const claims = requireAuth(request);
+        const { provider } = request.params;
+        if (!isIntegrationProvider(provider)) {
+          await reply.code(404).send({ message: 'Unknown provider' });
+          return;
+        }
+        const config = await deps.integrations.getMaskedConfig(
+          claims.organizationId,
+          provider,
+        );
+        await reply.send({ provider, config: config ?? {} });
+      } catch {
+        await reply.code(401).send({ message: 'Unauthorized' });
+      }
+    },
+  );
+
+  app.put<{ Params: { provider: string }; Body: Record<string, string> }>(
+    '/integrations/:provider',
+    async (request, reply) => {
+      try {
+        const claims = requireAuth(request);
+        const { provider } = request.params;
+        if (!isIntegrationProvider(provider)) {
+          await reply.code(404).send({ message: 'Unknown provider' });
+          return;
+        }
+        await deps.integrations.save(claims.organizationId, provider, request.body);
+        await reply.code(204).send();
+      } catch {
+        await reply.code(401).send({ message: 'Unauthorized' });
+      }
+    },
+  );
 
   app.get('/gateway/ws', { websocket: true }, (socket) => {
     const state: GatewayConnectionState = {};

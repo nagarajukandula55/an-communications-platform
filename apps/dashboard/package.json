@@ -15,6 +15,7 @@
     "clean": "rimraf .next"
   },
   "dependencies": {
+    "@acp/integrations": "workspace:*",
     "@acp/sdk": "workspace:*",
     "@acp/types": "workspace:*",
     "next": "^15.1.3",
