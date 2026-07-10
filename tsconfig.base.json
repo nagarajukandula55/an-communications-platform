@@ -109,6 +109,9 @@
       "@acp/analytics": [
         "packages/analytics/src"
       ],
+      "@acp/integrations": [
+        "packages/integrations/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],

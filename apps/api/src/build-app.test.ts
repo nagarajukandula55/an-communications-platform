@@ -11,6 +11,10 @@ import {
   TokenService,
 } from '@acp/auth';
 import { DeviceService, InMemoryDeviceRepository } from '@acp/devices';
+import {
+  InMemoryIntegrationRepository,
+  IntegrationsService,
+} from '@acp/integrations';
 import { buildApp } from './build-app.js';
 
 async function createApp() {
@@ -33,6 +37,10 @@ async function createApp() {
   );
   const deviceTokens = new InMemoryDeviceTokenRepository();
   const analytics = new InMemoryAnalyticsRepository([]);
+  const integrations = new IntegrationsService(
+    new InMemoryIntegrationRepository(),
+    { encryptionSecret: 'test-secret' },
+  );
 
   const { app } = await buildApp({
     auth,
@@ -40,6 +48,7 @@ async function createApp() {
     devices,
     deviceTokens,
     analytics,
+    integrations,
   });
   return app;
 }
@@ -173,5 +182,67 @@ describe('API app', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ total: 0, byStatus: {}, byChannel: {} });
+  });
+
+  it('saves and reads back a masked integration config', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+    const authHeader = { authorization: `Bearer ${registered.accessToken}` };
+
+    const put = await app.inject({
+      method: 'PUT',
+      url: '/integrations/smtp',
+      headers: authHeader,
+      payload: {
+        host: 'smtp.example.com',
+        port: '587',
+        username: 'acp',
+        password: 'super-secret',
+        fromAddress: 'no-reply@example.com',
+      },
+    });
+    expect(put.statusCode).toBe(204);
+
+    const get = await app.inject({
+      method: 'GET',
+      url: '/integrations/smtp',
+      headers: authHeader,
+    });
+    expect(get.statusCode).toBe(200);
+    const body: { provider: string; config: Record<string, string> } = get.json();
+    expect(body.config.host).toBe('smtp.example.com');
+    expect(body.config.password).not.toBe('super-secret');
+  });
+
+  it('rejects an unknown integration provider', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/integrations/carrier-pigeon',
+      headers: { authorization: `Bearer ${registered.accessToken}` },
+    });
+    expect(response.statusCode).toBe(404);
   });
 });

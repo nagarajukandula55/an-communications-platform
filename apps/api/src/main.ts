@@ -31,6 +31,11 @@ import {
   RoundRobinDeviceSelector,
   type DeviceDirectory,
 } from '@acp/sms-transport';
+import {
+  INTEGRATIONS_SCHEMA_SQL,
+  IntegrationsService,
+  PostgresIntegrationRepository,
+} from '@acp/integrations';
 import { buildApp } from './build-app.js';
 
 async function main(): Promise<void> {
@@ -48,6 +53,7 @@ async function main(): Promise<void> {
   await db.query(AUTH_SCHEMA_SQL);
   await db.query(DEVICES_SCHEMA_SQL);
   await db.query(MESSAGING_SCHEMA_SQL);
+  await db.query(INTEGRATIONS_SCHEMA_SQL);
 
   const events = new EventBus();
 
@@ -72,12 +78,21 @@ async function main(): Promise<void> {
 
   const analytics = new PostgresAnalyticsRepository(db);
 
+  const integrations = new IntegrationsService(
+    new PostgresIntegrationRepository(db),
+    {
+      encryptionSecret:
+        process.env['INTEGRATIONS_ENCRYPTION_SECRET'] ?? 'dev-encryption-secret',
+    },
+  );
+
   const { app, smsDispatcher } = await buildApp({
     auth,
     tokens,
     devices,
     deviceTokens,
     analytics,
+    integrations,
   });
 
   const deviceDirectory: DeviceDirectory = {

@@ -17,6 +17,11 @@ const NAV_ITEMS = [
     label: 'Live Logs',
     description: 'Coming soon — needs a log-streaming endpoint on the API.',
   },
+  {
+    href: '/settings',
+    label: 'Integration Settings',
+    description: 'Configure SMTP, push, WhatsApp, and voice provider credentials.',
+  },
 ] as const;
 
 export default function HomePage() {

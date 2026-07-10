@@ -22,6 +22,7 @@
     "@acp/database": "workspace:*",
     "@acp/devices": "workspace:*",
     "@acp/events": "workspace:*",
+    "@acp/integrations": "workspace:*",
     "@acp/logger": "workspace:*",
     "@acp/messaging": "workspace:*",
     "@acp/sms-transport": "workspace:*",
