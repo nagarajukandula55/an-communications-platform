@@ -15,6 +15,12 @@ import {
   type IntegrationProvider,
   type IntegrationsService,
 } from '@acp/integrations';
+import {
+  WEBHOOK_EVENT_NAMES,
+  type WebhookEventName,
+  type WebhookRepository,
+} from '@acp/webhooks';
+import { generateId } from '@acp/shared';
 import { ConnectionRegistry } from './connection-registry.js';
 import {
   handleGatewayMessage,
@@ -29,6 +35,13 @@ export interface AppDeps {
   readonly deviceTokens: DeviceTokenRepository;
   readonly analytics: AnalyticsRepository;
   readonly integrations: IntegrationsService;
+  readonly webhooks: WebhookRepository;
+}
+
+const VALID_WEBHOOK_EVENTS = new Set<string>(WEBHOOK_EVENT_NAMES);
+
+function isWebhookEventName(value: string): value is WebhookEventName {
+  return VALID_WEBHOOK_EVENTS.has(value);
 }
 
 const VALID_PROVIDERS = new Set(Object.keys(INTEGRATION_FIELD_SPECS));
@@ -173,6 +186,67 @@ export async function buildApp(deps: AppDeps): Promise<BuiltApp> {
       }
     },
   );
+
+  interface CreateWebhookBody {
+    readonly url: string;
+    readonly events: readonly string[];
+  }
+
+  app.get('/webhooks', async (request, reply) => {
+    try {
+      const claims = requireAuth(request);
+      const subscriptions = await deps.webhooks.listByOrganization(claims.organizationId);
+      await reply.send({
+        webhooks: subscriptions.map((sub) => ({
+          id: sub.id,
+          url: sub.url,
+          events: sub.events,
+          createdAt: sub.createdAt,
+        })),
+      });
+    } catch {
+      await reply.code(401).send({ message: 'Unauthorized' });
+    }
+  });
+
+  app.post<{ Body: CreateWebhookBody }>('/webhooks', async (request, reply) => {
+    try {
+      const claims = requireAuth(request);
+      const events = request.body.events.filter(isWebhookEventName);
+      if (events.length === 0) {
+        await reply.code(400).send({ message: 'No valid event names provided' });
+        return;
+      }
+
+      const subscription = await deps.webhooks.create({
+        id: generateId(),
+        organizationId: claims.organizationId,
+        url: request.body.url,
+        events,
+        secret: generateId(),
+        createdAt: new Date().toISOString(),
+      });
+
+      await reply.code(201).send({
+        id: subscription.id,
+        url: subscription.url,
+        events: subscription.events,
+        secret: subscription.secret,
+      });
+    } catch {
+      await reply.code(401).send({ message: 'Unauthorized' });
+    }
+  });
+
+  app.delete<{ Params: { id: string } }>('/webhooks/:id', async (request, reply) => {
+    try {
+      requireAuth(request);
+      await deps.webhooks.delete(request.params.id);
+      await reply.code(204).send();
+    } catch {
+      await reply.code(401).send({ message: 'Unauthorized' });
+    }
+  });
 
   app.get('/gateway/ws', { websocket: true }, (socket) => {
     const state: GatewayConnectionState = {};

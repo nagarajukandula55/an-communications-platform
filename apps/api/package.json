@@ -28,7 +28,9 @@
     "@acp/messaging": "workspace:*",
     "@acp/push-transport": "workspace:*",
     "@acp/sms-transport": "workspace:*",
+    "@acp/shared": "workspace:*",
     "@acp/voice-transport": "workspace:*",
+    "@acp/webhooks": "workspace:*",
     "@acp/whatsapp-transport": "workspace:*",
     "@fastify/websocket": "^11.0.2",
     "fastify": "^5.2.1"

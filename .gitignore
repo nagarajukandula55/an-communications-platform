@@ -267,6 +267,8 @@ docs/generated/
 openapi.json
 
 openapi.yaml
+# ...except our hand-written source spec, not a generated artifact.
+!docs/openapi.yaml
 
 # ----------------------------------------------------------
 # Dependency Cache

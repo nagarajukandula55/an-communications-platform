@@ -86,12 +86,18 @@ importers:
       '@acp/push-transport':
         specifier: workspace:*
         version: link:../../packages/push-transport
+      '@acp/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@acp/sms-transport':
         specifier: workspace:*
         version: link:../../packages/sms-transport
       '@acp/voice-transport':
         specifier: workspace:*
         version: link:../../packages/voice-transport
+      '@acp/webhooks':
+        specifier: workspace:*
+        version: link:../../packages/webhooks
       '@acp/whatsapp-transport':
         specifier: workspace:*
         version: link:../../packages/whatsapp-transport
@@ -164,6 +170,16 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)(jiti@1.21.7)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
 
+  examples/quickstart:
+    dependencies:
+      '@acp/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.0
+
   packages/analytics:
     dependencies:
       '@acp/database':
@@ -206,6 +222,19 @@ importers:
         version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
 
   packages/cache:
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/cli:
+    dependencies:
+      '@acp/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       vitest:
         specifier: ^3.2.4
@@ -382,6 +411,25 @@ importers:
       '@acp/messaging':
         specifier: workspace:*
         version: link:../messaging
+      '@acp/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/webhooks:
+    dependencies:
+      '@acp/database':
+        specifier: workspace:*
+        version: link:../database
+      '@acp/events':
+        specifier: workspace:*
+        version: link:../events
+      '@acp/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@acp/types':
         specifier: workspace:*
         version: link:../types

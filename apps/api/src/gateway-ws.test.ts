@@ -16,6 +16,7 @@ import {
   InMemoryIntegrationRepository,
   IntegrationsService,
 } from '@acp/integrations';
+import { InMemoryWebhookRepository } from '@acp/webhooks';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, type BuiltApp } from './build-app.js';
 import { issueDeviceToken } from './gateway.js';
@@ -52,6 +53,7 @@ async function startServer(): Promise<
     new InMemoryIntegrationRepository(),
     { encryptionSecret: 'test-secret' },
   );
+  const webhooks = new InMemoryWebhookRepository();
 
   const built = await buildApp({
     auth,
@@ -60,6 +62,7 @@ async function startServer(): Promise<
     deviceTokens,
     analytics,
     integrations,
+    webhooks,
   });
   app = built.app;
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
