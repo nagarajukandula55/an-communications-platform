@@ -9,9 +9,17 @@ function toListener<K extends AcpEventName>(
   handler: EventHandler<K>,
 ): (payload: AcpEventMap[K]) => void {
   return (payload) => {
-    void Promise.resolve(handler(payload)).catch((error: unknown) => {
+    // A handler can fail two ways: throw synchronously, or return a
+    // promise that rejects. Promise.resolve(handler(payload)) alone only
+    // catches the second case - handler(payload) still runs eagerly and
+    // a synchronous throw escapes before .catch() ever attaches.
+    try {
+      void Promise.resolve(handler(payload)).catch((error: unknown) => {
+        console.error(error);
+      });
+    } catch (error) {
       console.error(error);
-    });
+    }
   };
 }
 
