@@ -11,8 +11,13 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.an.acp.gateway.AcpGatewayApplication
+import com.an.acp.gateway.data.OutboxMessage
+import com.an.acp.gateway.data.OutboxStatus
+import com.an.acp.gateway.sms.SmsSender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -24,6 +29,12 @@ class GatewayConnectionService : Service() {
     private val scope = CoroutineScope(Dispatchers.IO)
     private val heartbeatHandler = Handler(Looper.getMainLooper())
     private var client: GatewayWebSocketClient? = null
+    private lateinit var smsSender: SmsSender
+
+    companion object {
+        private val _events = MutableStateFlow<GatewayEvent?>(null)
+        val events: StateFlow<GatewayEvent?> = _events
+    }
 
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
@@ -35,15 +46,34 @@ class GatewayConnectionService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
+        smsSender = SmsSender(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val app = application as AcpGatewayApplication
+        ActiveGateway.outboxDao = app.database.outboxDao()
         scope.launch {
             val token = app.credentials.currentToken() ?: return@launch
             val baseUrl = app.credentials.apiBaseUrl.first() ?: return@launch
 
-            client = GatewayWebSocketClient(baseWsUrl = baseUrl) { _ -> /* surfaced via UI state in a real build */ }
+            client = GatewayWebSocketClient(baseWsUrl = baseUrl) { event ->
+                _events.value = event
+                if (event is GatewayEvent.SendSms) {
+                    scope.launch {
+                        app.database.outboxDao().insert(
+                            OutboxMessage(
+                                id = event.messageId,
+                                to = event.to,
+                                body = event.body,
+                                status = OutboxStatus.PENDING,
+                                createdAt = System.currentTimeMillis(),
+                            ),
+                        )
+                        smsSender.send(event.messageId, event.to, event.body)
+                    }
+                }
+            }
+            ActiveGateway.client = client
             client?.connect(token)
             heartbeatHandler.post(heartbeatRunnable)
         }
@@ -53,6 +83,7 @@ class GatewayConnectionService : Service() {
     override fun onDestroy() {
         heartbeatHandler.removeCallbacks(heartbeatRunnable)
         client?.disconnect()
+        ActiveGateway.client = null
         super.onDestroy()
     }
 
