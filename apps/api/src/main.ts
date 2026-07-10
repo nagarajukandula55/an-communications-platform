@@ -1,3 +1,4 @@
+import { PostgresAnalyticsRepository } from '@acp/analytics';
 import { Database } from '@acp/database';
 import { loadConfig } from '@acp/config';
 import { EventBus } from '@acp/events';
@@ -69,7 +70,15 @@ async function main(): Promise<void> {
   const deviceRepository = new PostgresDeviceRepository(db);
   const devices = new DeviceService(deviceRepository, events);
 
-  const { app, smsDispatcher } = await buildApp({ auth, tokens, devices, deviceTokens });
+  const analytics = new PostgresAnalyticsRepository(db);
+
+  const { app, smsDispatcher } = await buildApp({
+    auth,
+    tokens,
+    devices,
+    deviceTokens,
+    analytics,
+  });
 
   const deviceDirectory: DeviceDirectory = {
     listOnlineByTenant: async (tenantId) => {

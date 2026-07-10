@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { InMemoryAnalyticsRepository } from '@acp/analytics';
 import { EventBus } from '@acp/events';
 import {
   AuthService,
@@ -31,8 +32,15 @@ async function createApp() {
     new EventBus(),
   );
   const deviceTokens = new InMemoryDeviceTokenRepository();
+  const analytics = new InMemoryAnalyticsRepository([]);
 
-  const { app } = await buildApp({ auth, tokens, devices, deviceTokens });
+  const { app } = await buildApp({
+    auth,
+    tokens,
+    devices,
+    deviceTokens,
+    analytics,
+  });
   return app;
 }
 
@@ -135,5 +143,35 @@ describe('API app', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ devices: [] });
+  });
+
+  it('rejects /analytics without a bearer token', async () => {
+    const app = await createApp();
+    const response = await app.inject({ method: 'GET', url: '/analytics' });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('returns delivery stats for the authenticated organization', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/analytics',
+      headers: { authorization: `Bearer ${registered.accessToken}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ total: 0, byStatus: {}, byChannel: {} });
   });
 });

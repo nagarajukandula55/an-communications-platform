@@ -5,6 +5,7 @@
     "rootDir": "src"
   },
   "references": [
+    { "path": "../../packages/analytics" },
     { "path": "../../packages/auth" },
     { "path": "../../packages/config" },
     { "path": "../../packages/database" },

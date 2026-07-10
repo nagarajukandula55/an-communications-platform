@@ -193,7 +193,7 @@ Deliverables
 
 Status
 
-🔄 In Progress (Authentication + Device Monitoring done; Queue Monitoring, Analytics, Live Logs, Message Tracking need backend endpoints that don't exist yet — placeholder pages ship instead)
+🔄 In Progress (Authentication, Device Monitoring, and Analytics done; Queue Monitoring and Live Logs still need backend endpoints — placeholder pages ship instead; Message Tracking overlaps with Analytics but per-message drill-down isn't built)
 
 ---
 
@@ -364,12 +364,12 @@ Current Version
 
 Current Milestone
 
-M11 OTP
+M12 Analytics
 
 Current Sprint
 
-Sprint 11
+Sprint 12
 
 Current Objective
 
-Build M12 Analytics: delivery metrics and dashboards.
+Build M13 Email: SMTP/IMAP transport, domains, templates, attachments, queue.

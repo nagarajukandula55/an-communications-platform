@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
+import { InMemoryAnalyticsRepository } from '@acp/analytics';
 import { EventBus } from '@acp/events';
 import {
   AuthService,
@@ -42,8 +43,9 @@ async function startServer(): Promise<
   });
   const deviceTokens = new InMemoryDeviceTokenRepository();
   const devices = new DeviceService(new InMemoryDeviceRepository(), new EventBus());
+  const analytics = new InMemoryAnalyticsRepository([]);
 
-  const built = await buildApp({ auth, tokens, devices, deviceTokens });
+  const built = await buildApp({ auth, tokens, devices, deviceTokens, analytics });
   app = built.app;
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
 
