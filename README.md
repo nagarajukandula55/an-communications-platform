@@ -165,9 +165,13 @@ No code is merged without passing all verification checks.
 
 # Current Status
 
-Current Milestone:
+**v1.0 — M01 through M18 complete.**
 
-**M01 - Repository Foundation**
+Every milestone in `engineering/ACP_ROADMAP.md` has shipped and passes
+`pnpm verify`. Read `engineering/PROGRESS.md`'s "what's real vs. what's
+unverified" section before treating this as production-ready — a lot of
+it has never touched live infrastructure, real cloud credentials, or a
+real Android SDK.
 
 See:
 

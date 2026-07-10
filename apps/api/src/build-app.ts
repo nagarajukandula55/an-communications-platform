@@ -1,3 +1,5 @@
+import helmetPlugin from '@fastify/helmet';
+import rateLimitPlugin from '@fastify/rate-limit';
 import websocketPlugin from '@fastify/websocket';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import {
@@ -27,6 +29,7 @@ import {
   type GatewayConnectionState,
 } from './gateway.js';
 import { WsDeviceCommandDispatcher } from './ws-device-command-dispatcher.js';
+import { createMetrics } from './metrics.js';
 
 export interface AppDeps {
   readonly auth: AuthService;
@@ -72,53 +75,136 @@ interface RefreshBody {
   readonly refreshToken: string;
 }
 
-export async function buildApp(deps: AppDeps): Promise<BuiltApp> {
+export interface BuildAppOptions {
+  /** Disabled in tests to avoid 429s across many requests in one run. */
+  readonly rateLimit?: boolean;
+}
+
+const AUTH_BODY_STRING = { type: 'string', minLength: 1, maxLength: 320 } as const;
+
+export async function buildApp(
+  deps: AppDeps,
+  options: BuildAppOptions = {},
+): Promise<BuiltApp> {
   const app = Fastify({ logger: false });
   await app.register(websocketPlugin);
+  await app.register(helmetPlugin);
+
+  if (options.rateLimit !== false) {
+    await app.register(rateLimitPlugin, { max: 100, timeWindow: '1 minute' });
+  }
 
   const connections = new ConnectionRegistry();
   const smsDispatcher = new WsDeviceCommandDispatcher({ registry: connections });
+  const metrics = createMetrics();
+
+  app.addHook('onResponse', (request, reply, done) => {
+    const labels = {
+      method: request.method,
+      route: request.routeOptions.url ?? request.url,
+      status_code: String(reply.statusCode),
+    };
+    metrics.httpRequestsTotal.inc(labels);
+    metrics.httpRequestDuration.observe(labels, reply.elapsedTime / 1000);
+    done();
+  });
 
   app.get('/health', () => ({ status: 'ok' }));
 
-  app.post<{ Body: RegisterBody }>('/auth/register', async (request, reply) => {
-    try {
-      const session = await deps.auth.register(request.body);
-      await reply.code(201).send(session);
-    } catch (error) {
-      if (error instanceof EmailInUseError) {
-        await reply.code(409).send({ message: error.message });
-        return;
-      }
-      throw error;
-    }
+  app.get('/metrics', async (_request, reply) => {
+    await reply.type(metrics.registry.contentType).send(await metrics.registry.metrics());
   });
 
-  app.post<{ Body: LoginBody }>('/auth/login', async (request, reply) => {
-    try {
-      const session = await deps.auth.login(request.body);
-      await reply.send(session);
-    } catch (error) {
-      if (error instanceof InvalidCredentialsError) {
-        await reply.code(401).send({ message: error.message });
-        return;
-      }
-      throw error;
-    }
-  });
+  const authRateLimitConfig =
+    options.rateLimit !== false
+      ? { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }
+      : {};
 
-  app.post<{ Body: RefreshBody }>('/auth/refresh', async (request, reply) => {
-    try {
-      const session = await deps.auth.refresh(request.body.refreshToken);
-      await reply.send(session);
-    } catch (error) {
-      if (error instanceof InvalidCredentialsError) {
-        await reply.code(401).send({ message: error.message });
-        return;
+  app.post<{ Body: RegisterBody }>(
+    '/auth/register',
+    {
+      ...authRateLimitConfig,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['organizationName', 'email', 'password'],
+          properties: {
+            organizationName: AUTH_BODY_STRING,
+            email: AUTH_BODY_STRING,
+            password: { type: 'string', minLength: 8, maxLength: 256 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const session = await deps.auth.register(request.body);
+        await reply.code(201).send(session);
+      } catch (error) {
+        if (error instanceof EmailInUseError) {
+          await reply.code(409).send({ message: error.message });
+          return;
+        }
+        throw error;
       }
-      throw error;
-    }
-  });
+    },
+  );
+
+  app.post<{ Body: LoginBody }>(
+    '/auth/login',
+    {
+      ...authRateLimitConfig,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['organizationId', 'email', 'password'],
+          properties: {
+            organizationId: AUTH_BODY_STRING,
+            email: AUTH_BODY_STRING,
+            password: { type: 'string', minLength: 1, maxLength: 256 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const session = await deps.auth.login(request.body);
+        await reply.send(session);
+      } catch (error) {
+        if (error instanceof InvalidCredentialsError) {
+          await reply.code(401).send({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Body: RefreshBody }>(
+    '/auth/refresh',
+    {
+      ...authRateLimitConfig,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['refreshToken'],
+          properties: { refreshToken: AUTH_BODY_STRING },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const session = await deps.auth.refresh(request.body.refreshToken);
+        await reply.send(session);
+      } catch (error) {
+        if (error instanceof InvalidCredentialsError) {
+          await reply.code(401).send({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    },
+  );
 
   function requireAuth(request: FastifyRequest): AccessTokenClaims {
     const header = request.headers.authorization;

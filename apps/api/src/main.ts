@@ -242,6 +242,26 @@ async function main(): Promise<void> {
 
   await app.listen({ host: config.API_HOST, port: config.API_PORT });
   logger.info('API listening', { host: config.API_HOST, port: config.API_PORT });
+
+  let shuttingDown = false;
+  const shutdown = (signal: string): void => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    logger.info('Shutting down', { signal });
+
+    void Promise.allSettled([app.close(), messageQueue.close(), db.close()]).then(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => {
+    shutdown('SIGTERM');
+  });
+  process.on('SIGINT', () => {
+    shutdown('SIGINT');
+  });
 }
 
 main().catch((error: unknown) => {

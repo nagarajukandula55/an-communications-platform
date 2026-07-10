@@ -55,15 +55,10 @@ async function startServer(): Promise<
   );
   const webhooks = new InMemoryWebhookRepository();
 
-  const built = await buildApp({
-    auth,
-    tokens,
-    devices,
-    deviceTokens,
-    analytics,
-    integrations,
-    webhooks,
-  });
+  const built = await buildApp(
+    { auth, tokens, devices, deviceTokens, analytics, integrations, webhooks },
+    { rateLimit: false },
+  );
   app = built.app;
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
 
