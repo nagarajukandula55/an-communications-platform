@@ -16,9 +16,10 @@ import {
   IntegrationsService,
 } from '@acp/integrations';
 import { InMemoryWebhookRepository } from '@acp/webhooks';
+import { SsoTokenInvalidError, type SsoClient } from '@acp/sso-client';
 import { buildApp } from './build-app.js';
 
-async function createApp() {
+async function createApp(sso?: SsoClient) {
   const tokens = new TokenService({
     accessSecret: 'access-secret',
     refreshSecret: 'refresh-secret',
@@ -45,7 +46,16 @@ async function createApp() {
   const webhooks = new InMemoryWebhookRepository();
 
   const { app } = await buildApp(
-    { auth, tokens, devices, deviceTokens, analytics, integrations, webhooks },
+    {
+      auth,
+      tokens,
+      devices,
+      deviceTokens,
+      analytics,
+      integrations,
+      webhooks,
+      ...(sso ? { sso } : {}),
+    },
     { rateLimit: false },
   );
   return app;
@@ -379,5 +389,95 @@ describe('API app', () => {
     const response = await app.inject({ method: 'GET', url: '/health' });
 
     expect(response.headers['x-content-type-options']).toBe('nosniff');
+  });
+});
+
+describe('ANgroup SSO', () => {
+  it('returns 501 for /auth/sso/callback when SSO is not configured', async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/sso/callback',
+      payload: { ssoToken: 'anything' },
+    });
+
+    expect(response.statusCode).toBe(501);
+  });
+
+  it('rejects an invalid SSO token', async () => {
+    const sso = {
+      verify: () =>
+        Promise.reject(new SsoTokenInvalidError('Invalid or expired SSO token')),
+    } as unknown as SsoClient;
+
+    const app = await createApp(sso);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/sso/callback',
+      payload: { ssoToken: 'bad-token' },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('logs in via a verified SSO token and auto-provisions the org/user', async () => {
+    const sso = {
+      verify: () =>
+        Promise.resolve({
+          id: 'sso-user-1',
+          email: 'staff@angroup.in',
+          name: 'AN Group Staff',
+          username: null,
+          role: 'MEMBER',
+          isSuperAdmin: false,
+          avatar: null,
+          businessIds: ['biz-1'],
+          activeBusinessId: 'biz-1',
+          memberType: 'STAFF',
+          vendorMemberships: [],
+        }),
+    } as unknown as SsoClient;
+
+    const app = await createApp(sso);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/sso/callback',
+      payload: { ssoToken: 'good-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body: { user: { email: string; isSuperAdmin: boolean } } = response.json();
+    expect(body.user.email).toBe('staff@angroup.in');
+    expect(body.user.isSuperAdmin).toBe(false);
+  });
+
+  it('blocks plain password login for non-super-admin users once SSO is configured', async () => {
+    const sso = { verify: () => Promise.reject(new Error('unused')) } as unknown as SsoClient;
+    const app = await createApp(sso);
+
+    const registered = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner2@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const { user }: { user: { organizationId: string } } = registered.json();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        organizationId: user.organizationId,
+        email: 'owner2@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    const body: { ssoRequired: boolean } = response.json();
+    expect(body.ssoRequired).toBe(true);
   });
 });

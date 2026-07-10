@@ -22,6 +22,8 @@ interface UserRow {
   readonly password_hash: string;
   readonly role: Role;
   readonly created_at: string;
+  readonly is_super_admin: boolean;
+  readonly sso_user_id: string | null;
 }
 
 function toUser(row: UserRow): User {
@@ -32,6 +34,8 @@ function toUser(row: UserRow): User {
     passwordHash: row.password_hash,
     role: row.role,
     createdAt: row.created_at,
+    isSuperAdmin: row.is_super_admin,
+    ...(row.sso_user_id ? { ssoUserId: row.sso_user_id } : {}),
   };
 }
 
@@ -57,10 +61,18 @@ export class PostgresUserRepository implements UserRepository {
     return result.rows[0] ? toUser(result.rows[0]) : undefined;
   }
 
+  async findBySsoUserId(ssoUserId: string): Promise<User | undefined> {
+    const result = await this.db.query<UserRow>(
+      'SELECT * FROM users WHERE sso_user_id = $1',
+      [ssoUserId],
+    );
+    return result.rows[0] ? toUser(result.rows[0]) : undefined;
+  }
+
   async create(user: User): Promise<User> {
     await this.db.query(
-      `INSERT INTO users (id, organization_id, email, password_hash, role, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO users (id, organization_id, email, password_hash, role, created_at, is_super_admin, sso_user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         user.id,
         user.organizationId,
@@ -68,6 +80,8 @@ export class PostgresUserRepository implements UserRepository {
         user.passwordHash,
         user.role,
         user.createdAt,
+        user.isSuperAdmin,
+        user.ssoUserId ?? null,
       ],
     );
     return user;
@@ -78,6 +92,16 @@ interface OrganizationRow {
   readonly id: string;
   readonly name: string;
   readonly created_at: string;
+  readonly sso_business_id: string | null;
+}
+
+function toOrganization(row: OrganizationRow): Organization {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at,
+    ...(row.sso_business_id ? { ssoBusinessId: row.sso_business_id } : {}),
+  };
 }
 
 export class PostgresOrganizationRepository implements OrganizationRepository {
@@ -85,8 +109,13 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
 
   async create(organization: Organization): Promise<Organization> {
     await this.db.query(
-      'INSERT INTO organizations (id, name, created_at) VALUES ($1, $2, $3)',
-      [organization.id, organization.name, organization.createdAt],
+      'INSERT INTO organizations (id, name, created_at, sso_business_id) VALUES ($1, $2, $3, $4)',
+      [
+        organization.id,
+        organization.name,
+        organization.createdAt,
+        organization.ssoBusinessId ?? null,
+      ],
     );
     return organization;
   }
@@ -96,10 +125,15 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
       'SELECT * FROM organizations WHERE id = $1',
       [id],
     );
-    const row = result.rows[0];
-    return row
-      ? { id: row.id, name: row.name, createdAt: row.created_at }
-      : undefined;
+    return result.rows[0] ? toOrganization(result.rows[0]) : undefined;
+  }
+
+  async findBySsoBusinessId(ssoBusinessId: string): Promise<Organization | undefined> {
+    const result = await this.db.query<OrganizationRow>(
+      'SELECT * FROM organizations WHERE sso_business_id = $1',
+      [ssoBusinessId],
+    );
+    return result.rows[0] ? toOrganization(result.rows[0]) : undefined;
   }
 }
 

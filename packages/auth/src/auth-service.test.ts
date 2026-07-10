@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  AuthService,
-  EmailInUseError,
-  InvalidCredentialsError,
-} from './auth-service.js';
+import { AuthService, EmailInUseError, InvalidCredentialsError } from './auth-service.js';
 import {
   InMemoryApiKeyRepository,
   InMemoryOrganizationRepository,
@@ -78,6 +74,85 @@ describe('AuthService', () => {
         password: 'wrong-password',
       }),
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
+  });
+
+  it('ssoLogin-provisioned users get a locked password hash nothing can match', async () => {
+    const session = await service.ssoLogin({
+      ssoUserId: 'sso-1',
+      email: 'root@angroup.in',
+      isSuperAdmin: true,
+      ssoBusinessId: 'biz-1',
+      organizationName: 'AN Group',
+      role: 'owner',
+    });
+
+    await expect(
+      service.login({
+        organizationId: session.user.organizationId,
+        email: 'root@angroup.in',
+        password: 'any-guess',
+      }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+  });
+
+  it('ssoLogin auto-provisions an organization and user on first login', async () => {
+    const session = await service.ssoLogin({
+      ssoUserId: 'sso-42',
+      email: 'staff@angroup.in',
+      isSuperAdmin: false,
+      ssoBusinessId: 'biz-42',
+      organizationName: 'AN Group Business 42',
+      role: 'member',
+    });
+
+    expect(session.user.ssoUserId).toBe('sso-42');
+    expect(session.user.isSuperAdmin).toBe(false);
+    expect(session.accessToken).toBeTruthy();
+  });
+
+  it('ssoLogin reuses the same user and organization on repeat logins', async () => {
+    const first = await service.ssoLogin({
+      ssoUserId: 'sso-7',
+      email: 'staff@angroup.in',
+      isSuperAdmin: false,
+      ssoBusinessId: 'biz-7',
+      organizationName: 'AN Group Business 7',
+      role: 'member',
+    });
+
+    const second = await service.ssoLogin({
+      ssoUserId: 'sso-7',
+      email: 'staff@angroup.in',
+      isSuperAdmin: false,
+      ssoBusinessId: 'biz-7',
+      organizationName: 'AN Group Business 7',
+      role: 'member',
+    });
+
+    expect(second.user.id).toBe(first.user.id);
+    expect(second.user.organizationId).toBe(first.user.organizationId);
+  });
+
+  it('ssoLogin re-derives isSuperAdmin from ANgroup on every login', async () => {
+    const first = await service.ssoLogin({
+      ssoUserId: 'sso-9',
+      email: 'promoted@angroup.in',
+      isSuperAdmin: false,
+      ssoBusinessId: 'biz-9',
+      organizationName: 'AN Group Business 9',
+      role: 'member',
+    });
+    expect(first.user.isSuperAdmin).toBe(false);
+
+    const second = await service.ssoLogin({
+      ssoUserId: 'sso-9',
+      email: 'promoted@angroup.in',
+      isSuperAdmin: true,
+      ssoBusinessId: 'biz-9',
+      organizationName: 'AN Group Business 9',
+      role: 'owner',
+    });
+    expect(second.user.isSuperAdmin).toBe(true);
   });
 
   it('refreshes a session and rotates the refresh token', async () => {

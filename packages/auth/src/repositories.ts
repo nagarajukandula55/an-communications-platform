@@ -12,12 +12,14 @@ export interface UserRepository {
     email: string,
   ): Promise<User | undefined>;
   findById(id: string): Promise<User | undefined>;
+  findBySsoUserId(ssoUserId: string): Promise<User | undefined>;
   create(user: User): Promise<User>;
 }
 
 export interface OrganizationRepository {
   create(organization: Organization): Promise<Organization>;
   findById(id: string): Promise<Organization | undefined>;
+  findBySsoBusinessId(ssoBusinessId: string): Promise<Organization | undefined>;
 }
 
 export interface ApiKeyRepository {
