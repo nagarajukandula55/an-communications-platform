@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '@acp/types';
 import { EventBus } from './index.js';
 
@@ -39,5 +39,23 @@ describe('EventBus', () => {
     bus.emit('MessageCreated', message);
 
     expect(calls).toBe(0);
+  });
+
+  it('does not let a synchronously-throwing handler stop other subscribers from running', () => {
+    const bus = new EventBus();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let secondHandlerCalled = false;
+
+    bus.on('MessageCreated', () => {
+      throw new Error('handler 1 failed');
+    });
+    bus.on('MessageCreated', () => {
+      secondHandlerCalled = true;
+    });
+
+    bus.emit('MessageCreated', message);
+
+    expect(secondHandlerCalled).toBe(true);
+    errorSpy.mockRestore();
   });
 });
