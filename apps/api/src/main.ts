@@ -45,6 +45,7 @@ import {
   WebhookDispatcher,
   PostgresWebhookRepository,
 } from '@acp/webhooks';
+import { SsoClient } from '@acp/sso-client';
 import { buildApp } from './build-app.js';
 
 async function main(): Promise<void> {
@@ -99,6 +100,12 @@ async function main(): Promise<void> {
   const webhooks = new PostgresWebhookRepository(db);
   new WebhookDispatcher({ repository: webhooks, events });
 
+  // Every login goes through ANgroup SSO except accounts ANgroup itself
+  // flags isSuperAdmin - see AuthService.login/ssoLogin. Unset in
+  // environments not part of the ANgroup ecosystem (e.g. local dev).
+  const ssoBaseUrl = process.env['ANGROUP_SSO_URL'];
+  const sso = ssoBaseUrl ? new SsoClient({ baseUrl: ssoBaseUrl }) : undefined;
+
   const { app, smsDispatcher } = await buildApp({
     auth,
     tokens,
@@ -107,6 +114,7 @@ async function main(): Promise<void> {
     analytics,
     integrations,
     webhooks,
+    ...(sso ? { sso } : {}),
   });
 
   const deviceDirectory: DeviceDirectory = {

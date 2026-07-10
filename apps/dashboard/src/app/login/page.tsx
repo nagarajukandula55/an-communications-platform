@@ -31,7 +31,14 @@ export default function LoginPage() {
       });
 
       if (!response.ok) {
-        setError('Invalid credentials');
+        const body = (await response
+          .json()
+          .catch(() => ({ ssoRequired: false }))) as { ssoRequired?: boolean };
+        setError(
+          body.ssoRequired
+            ? 'This account must sign in through AN Group SSO - open this app from the AN Group portal.'
+            : 'Invalid credentials',
+        );
         return;
       }
 
@@ -52,6 +59,11 @@ export default function LoginPage() {
   return (
     <main className="mx-auto max-w-sm">
       <h1 className="text-xl font-semibold">Sign in</h1>
+      <p className="mt-1 text-sm text-slate-500">
+        Everyone in the AN Group ecosystem signs in through AN Group SSO -
+        launch this app from the AN Group portal. The form below is for the
+        Super Admin break-glass account only.
+      </p>
 
       <form onSubmit={(event) => void handleSubmit(event)} className="mt-6 space-y-4">
         <label className="block">

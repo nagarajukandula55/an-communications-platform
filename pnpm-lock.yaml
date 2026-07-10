@@ -92,6 +92,9 @@ importers:
       '@acp/sms-transport':
         specifier: workspace:*
         version: link:../../packages/sms-transport
+      '@acp/sso-client':
+        specifier: workspace:*
+        version: link:../../packages/sso-client
       '@acp/voice-transport':
         specifier: workspace:*
         version: link:../../packages/voice-transport
@@ -407,6 +410,16 @@ importers:
       '@acp/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/sso-client:
+    dependencies:
+      '@acp/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       vitest:
         specifier: ^3.2.4

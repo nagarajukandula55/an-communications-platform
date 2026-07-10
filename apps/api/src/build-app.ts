@@ -5,11 +5,14 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import {
   EmailInUseError,
   InvalidCredentialsError,
+  SsoRequiredError,
   type AccessTokenClaims,
   type AuthService,
   type DeviceTokenRepository,
+  type Role,
   type TokenService,
 } from '@acp/auth';
+import { SsoTokenInvalidError, type SsoClient } from '@acp/sso-client';
 import type { AnalyticsRepository } from '@acp/analytics';
 import type { DeviceService } from '@acp/devices';
 import {
@@ -39,6 +42,19 @@ export interface AppDeps {
   readonly analytics: AnalyticsRepository;
   readonly integrations: IntegrationsService;
   readonly webhooks: WebhookRepository;
+  /** Absent in environments that haven't configured ANgroup SSO (e.g. most tests). */
+  readonly sso?: SsoClient;
+}
+
+/** ANgroup's role strings are its own; map onto ACP's closed Role union rather than trusting an open string. */
+function mapSsoRole(role: string, isSuperAdmin: boolean): Role {
+  if (isSuperAdmin || role === 'SUPER_ADMIN') {
+    return 'owner';
+  }
+  if (role === 'ADMIN') {
+    return 'admin';
+  }
+  return 'member';
 }
 
 const VALID_WEBHOOK_EVENTS = new Set<string>(WEBHOOK_EVENT_NAMES);
@@ -169,9 +185,67 @@ export async function buildApp(
     async (request, reply) => {
       try {
         const session = await deps.auth.login(request.body);
+        // SSO enforcement lives here, not in AuthService, so deployments
+        // that haven't configured ANgroup SSO (local dev, tests, any
+        // non-ANgroup installation) keep working exactly as before -
+        // password login is only ever blocked once `deps.sso` is set up.
+        if (deps.sso && !session.user.isSuperAdmin) {
+          const error = new SsoRequiredError();
+          await reply.code(403).send({ message: error.message, ssoRequired: true });
+          return;
+        }
         await reply.send(session);
       } catch (error) {
         if (error instanceof InvalidCredentialsError) {
+          await reply.code(401).send({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    },
+  );
+
+  interface SsoCallbackBody {
+    readonly ssoToken: string;
+  }
+
+  app.post<{ Body: SsoCallbackBody }>(
+    '/auth/sso/callback',
+    {
+      ...authRateLimitConfig,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['ssoToken'],
+          properties: { ssoToken: { type: 'string', minLength: 1, maxLength: 4096 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!deps.sso) {
+        await reply.code(501).send({ message: 'SSO is not configured on this deployment' });
+        return;
+      }
+      try {
+        const ssoUser = await deps.sso.verify(request.body.ssoToken);
+        const businessId = ssoUser.activeBusinessId ?? ssoUser.businessIds[0];
+        if (!businessId) {
+          await reply
+            .code(403)
+            .send({ message: 'This ANgroup account is not a member of any business' });
+          return;
+        }
+        const session = await deps.auth.ssoLogin({
+          ssoUserId: ssoUser.id,
+          email: ssoUser.email,
+          isSuperAdmin: ssoUser.isSuperAdmin,
+          ssoBusinessId: businessId,
+          organizationName: ssoUser.name || ssoUser.email,
+          role: mapSsoRole(ssoUser.role, ssoUser.isSuperAdmin),
+        });
+        await reply.send(session);
+      } catch (error) {
+        if (error instanceof SsoTokenInvalidError) {
           await reply.code(401).send({ message: error.message });
           return;
         }

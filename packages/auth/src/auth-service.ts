@@ -43,10 +43,26 @@ export interface AuthSession {
   readonly refreshToken: string;
 }
 
+export interface SsoLoginInput {
+  readonly ssoUserId: string;
+  readonly email: string;
+  readonly isSuperAdmin: boolean;
+  readonly ssoBusinessId: string;
+  readonly organizationName: string;
+  readonly role: Role;
+}
+
 export class InvalidCredentialsError extends Error {
   constructor() {
     super('Invalid credentials');
     this.name = 'InvalidCredentialsError';
+  }
+}
+
+export class SsoRequiredError extends Error {
+  constructor() {
+    super('This account must sign in through ANgroup SSO');
+    this.name = 'SsoRequiredError';
   }
 }
 
@@ -75,6 +91,14 @@ export class AuthService {
       passwordHash: await hashPassword(input.password),
       role: 'owner' satisfies Role,
       createdAt: new Date().toISOString(),
+      /**
+       * Local self-registration does not grant SSO bypass - only an
+       * account ANgroup itself flags isSuperAdmin (via /auth/sso/callback)
+       * can log in with a plain password afterwards. This user's initial
+       * session still works (issueSession below), but a later password
+       * login attempt will be rejected with SsoRequiredError.
+       */
+      isSuperAdmin: false,
     };
     await this.deps.users.create(user);
 
@@ -97,6 +121,7 @@ export class AuthService {
       passwordHash: await hashPassword(input.password),
       role: input.role,
       createdAt: new Date().toISOString(),
+      isSuperAdmin: false,
     };
     return this.deps.users.create(user);
   }
@@ -109,6 +134,54 @@ export class AuthService {
     if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
       throw new InvalidCredentialsError();
     }
+
+    return this.issueSession(user);
+  }
+
+  /**
+   * Called after a caller has already verified an ANgroup SSO token
+   * (see @acp/sso-client + apps/api's /auth/sso/callback route). Finds or
+   * auto-provisions the organization + user for this ANgroup business/user,
+   * then issues a normal local session - downstream code doesn't need to
+   * know the session originated via SSO.
+   */
+  async ssoLogin(input: SsoLoginInput): Promise<AuthSession> {
+    const existing = await this.deps.users.findBySsoUserId(input.ssoUserId);
+    if (existing) {
+      // isSuperAdmin is re-derived from ANgroup on every SSO login rather
+      // than trusted from local storage, so a revoked admin loses bypass
+      // access on their very next sign-in without needing a local update
+      // path (repositories only expose create, not update).
+      return this.issueSession({ ...existing, isSuperAdmin: input.isSuperAdmin });
+    }
+
+    let organization = await this.deps.organizations.findBySsoBusinessId(
+      input.ssoBusinessId,
+    );
+    if (!organization) {
+      organization = {
+        id: generateId(),
+        name: input.organizationName,
+        createdAt: new Date().toISOString(),
+        ssoBusinessId: input.ssoBusinessId,
+      };
+      await this.deps.organizations.create(organization);
+    }
+
+    const user: User = {
+      id: generateId(),
+      organizationId: organization.id,
+      email: input.email,
+      // SSO-provisioned users never log in with a local password; lock the
+      // slot with a hash no plaintext can ever match rather than leaving
+      // it empty/guessable.
+      passwordHash: await hashPassword(generateId()),
+      role: input.role,
+      createdAt: new Date().toISOString(),
+      isSuperAdmin: input.isSuperAdmin,
+      ssoUserId: input.ssoUserId,
+    };
+    await this.deps.users.create(user);
 
     return this.issueSession(user);
   }

@@ -32,6 +32,15 @@ export class InMemoryUserRepository implements UserRepository {
     return Promise.resolve(this.usersById.get(id));
   }
 
+  findBySsoUserId(ssoUserId: string): Promise<User | undefined> {
+    for (const user of this.usersById.values()) {
+      if (user.ssoUserId === ssoUserId) {
+        return Promise.resolve(user);
+      }
+    }
+    return Promise.resolve(undefined);
+  }
+
   create(user: User): Promise<User> {
     this.usersById.set(user.id, user);
     return Promise.resolve(user);
@@ -48,6 +57,15 @@ export class InMemoryOrganizationRepository implements OrganizationRepository {
 
   findById(id: string): Promise<Organization | undefined> {
     return Promise.resolve(this.organizations.get(id));
+  }
+
+  findBySsoBusinessId(ssoBusinessId: string): Promise<Organization | undefined> {
+    for (const organization of this.organizations.values()) {
+      if (organization.ssoBusinessId === ssoBusinessId) {
+        return Promise.resolve(organization);
+      }
+    }
+    return Promise.resolve(undefined);
   }
 }
 

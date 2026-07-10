@@ -2,7 +2,8 @@ export const AUTH_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS organizations (
   id UUID PRIMARY KEY,
   name TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sso_business_id TEXT UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -12,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_super_admin BOOLEAN NOT NULL DEFAULT false,
+  sso_user_id TEXT UNIQUE,
   UNIQUE (organization_id, email)
 );
 

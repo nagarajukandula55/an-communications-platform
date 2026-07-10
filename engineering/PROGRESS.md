@@ -8,9 +8,94 @@ and update it before finishing.
 
 ## Status
 
-- Current Version: 1.0
-- Next Milestone: none — M01 through M18 are all complete
+- Current Version: 1.0 + ANgroup SSO integration
+- Next Milestone: none currently in progress — see "ANgroup SSO integration" below for what's done vs. still needed
 - Last Updated: 2026-07-10
+
+---
+
+## ANgroup SSO integration (2026-07-10)
+
+Real (not simulated) client against ANgroup's actual production SSO
+contract, read directly from the ANgroup repo's source
+(`src/app/api/sso/{token,verify}/route.ts`, `src/lib/auth/jwt.ts`,
+`src/app/admin/sso/page.tsx`) rather than guessed.
+
+**What ANgroup's SSO actually is:** the user logs into the ANgroup portal,
+ANgroup itself calls its own `POST /api/sso/token` to mint a short-lived
+(1h) HS256 JWT, then ANgroup links out to the consuming app with that
+token attached (e.g. `.../sso/callback?token=...`). Consuming apps only
+ever call the public `POST /api/sso/verify` to check a token - there is no
+browser-redirect "login with ANgroup" page on ANgroup's side, so this app
+never redirects there; it can only be *launched from* ANgroup once you're
+already signed in.
+
+Built:
+- `packages/sso-client` (new) - `SsoClient.verify(token)` posts to
+  ANgroup's `/api/sso/verify`, typed against the real response shape
+  (`user.isSuperAdmin`, `businessIds`, `activeBusinessId`,
+  `vendorMemberships`, etc). No shared secret needed client-side - ANgroup
+  verifies its own signature and only ever hands back decoded claims.
+- `packages/auth`: `User` gained `isSuperAdmin` (required) and
+  `ssoUserId`/`Organization.ssoBusinessId` (optional). New
+  `AuthService.ssoLogin()` finds-or-auto-provisions an organization
+  (keyed by ANgroup businessId) and user (keyed by ANgroup userId) from a
+  verified SSO payload, then issues a normal local session - downstream
+  code doesn't need to know a session came from SSO. SSO-provisioned users
+  get a password hash locked to an unguessable random value (via
+  `hashPassword(generateId())`) since they must never be able to
+  password-login.
+- `apps/api`: new `POST /auth/sso/callback { ssoToken }` route, wired to
+  `deps.sso` (a `SsoClient`, only constructed in `main.ts` when
+  `ANGROUP_SSO_URL` is set - unset in local dev/tests, so nothing here
+  changes behavior for non-ANgroup deployments). `POST /auth/login` now
+  additionally checks `deps.sso && !session.user.isSuperAdmin` and returns
+  `403 { ssoRequired: true }` in that case - enforcement lives at the API
+  layer, not baked into `AuthService`, specifically so this package stays
+  usable standalone outside the ANgroup ecosystem.
+- `apps/dashboard`: `/sso/callback?token=...` page (posts to
+  `/auth/sso/callback`, saves the session, redirects to `/devices`).
+  `/login` page now labeled as the Super Admin break-glass form only, and
+  surfaces the `ssoRequired` case with a clear message instead of a
+  generic "invalid credentials."
+
+**Provisioning the Super Admin break-glass account:** deliberately not
+exposed via a public API - `POST /auth/register` always sets
+`isSuperAdmin: false`. The one account allowed to skip SSO must be
+created directly against the database (set `is_super_admin = true` on its
+`users` row) by whoever operates the deployment, not through any app UI.
+
+**Verified:** `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+all pass from a fully cold build state (all `dist/`, `.next/`, and
+`*.tsbuildinfo` removed first, matching what CI does) - 95/95 turbo tasks
+green. New tests: `packages/sso-client/src/client.test.ts` (3 tests,
+mocked fetch against the real verify contract),
+`packages/auth/src/auth-service.test.ts` (+5 tests for `ssoLogin`),
+`apps/api/src/build-app.test.ts` (+4 tests for the callback route and the
+login-gate behavior).
+
+**Explicitly NOT done in this pass (needs a decision, not guessed at):**
+1. **2FA "SSO-wide"** - since ANgroup is the single identity source for
+   the whole ecosystem, 2FA has to live in ANgroup's own login, not in
+   each consuming app. That means touching ANgroup's live production auth
+   code (`angroup.in`), which needs its own careful, separately-reviewed
+   change - not bundled silently into this pass. Proposed design (not yet
+   built): TOTP-based, an `is2faEnabled`/`totpSecret` field on ANgroup's
+   `User` model, a verify-code step inserted into ANgroup's existing
+   login flow, and Super Admin accounts (`isSuperAdmin: true`) exempted
+   per the user's explicit instruction. Needs the user's go-ahead before
+   touching that repo's live auth path.
+2. **an-mail-platform connection** - not merged or wired up yet. Recommended
+   approach (from earlier in this session): add a 6th integration provider
+   in `packages/integrations` that POSTs to an-mail-platform's existing
+   `services/smtp` send API instead of raw SMTP, rather than copying code
+   between repos (the sandbox's data-exfiltration guard blocks bulk
+   copying a whole repo tree into another repo, confirmed when attempted).
+3. **New merged "an-platform" monorepo** - not created. GitHub App
+   integration lacks repo-creation write access (confirmed:
+   `create_repository` → 403), same limitation as direct push. Would need
+   the user to create the empty repo, or do the SSO/mail work directly in
+   this repo instead (what was actually done here).
 
 ---
 

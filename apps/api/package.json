@@ -29,6 +29,7 @@
     "@acp/push-transport": "workspace:*",
     "@acp/sms-transport": "workspace:*",
     "@acp/shared": "workspace:*",
+    "@acp/sso-client": "workspace:*",
     "@acp/voice-transport": "workspace:*",
     "@acp/webhooks": "workspace:*",
     "@acp/whatsapp-transport": "workspace:*",
