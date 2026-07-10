@@ -19,6 +19,7 @@ sealed class GatewayEvent {
     object HeartbeatAck : GatewayEvent()
     data class Error(val message: String) : GatewayEvent()
     object Disconnected : GatewayEvent()
+    data class SendSms(val messageId: String, val to: String, val body: String) : GatewayEvent()
 }
 
 class GatewayWebSocketClient(
@@ -47,6 +48,13 @@ class GatewayWebSocketClient(
                     }
                     "heartbeat_ack" -> onEvent(GatewayEvent.HeartbeatAck)
                     "error" -> onEvent(GatewayEvent.Error(envelope.message ?: "Unknown error"))
+                    "send_sms" -> if (
+                        envelope.messageId != null &&
+                        envelope.to != null &&
+                        envelope.body != null
+                    ) {
+                        onEvent(GatewayEvent.SendSms(envelope.messageId, envelope.to, envelope.body))
+                    }
                 }
             }
 
@@ -64,14 +72,47 @@ class GatewayWebSocketClient(
         socket?.send("""{"type":"heartbeat"}""")
     }
 
+    fun sendSmsResult(messageId: String, accepted: Boolean, providerRef: String? = null, error: String? = null) {
+        val outbound = OutboundSmsResult("sms_result", messageId, accepted, providerRef, error)
+        socket?.send(outboundSmsResultAdapter.toJson(outbound))
+    }
+
+    fun sendSmsReceived(from: String, body: String, receivedAt: String) {
+        val outbound = OutboundSmsReceived("sms_received", from, body, receivedAt)
+        socket?.send(outboundSmsReceivedAdapter.toJson(outbound))
+    }
+
     fun disconnect() {
         socket?.close(1000, "client_disconnect")
         socket = null
     }
+
+    private val outboundSmsResultAdapter: JsonAdapter<OutboundSmsResult> =
+        moshi.adapter(OutboundSmsResult::class.java)
+    private val outboundSmsReceivedAdapter: JsonAdapter<OutboundSmsReceived> =
+        moshi.adapter(OutboundSmsReceived::class.java)
 }
 
 private data class InboundEnvelope(
     val type: String,
     val deviceId: String? = null,
     val message: String? = null,
+    val messageId: String? = null,
+    val to: String? = null,
+    val body: String? = null,
+)
+
+private data class OutboundSmsResult(
+    val type: String,
+    val messageId: String,
+    val accepted: Boolean,
+    val providerRef: String?,
+    val error: String?,
+)
+
+private data class OutboundSmsReceived(
+    val type: String,
+    val from: String,
+    val body: String,
+    val receivedAt: String,
 )
