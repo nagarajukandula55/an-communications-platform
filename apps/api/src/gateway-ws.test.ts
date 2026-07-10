@@ -68,6 +68,7 @@ async function startServer(): Promise<
   return {
     connections: built.connections,
     smsDispatcher: built.smsDispatcher,
+    inboundSmsLog: built.inboundSmsLog,
     address,
     token,
     deviceId: device.id,

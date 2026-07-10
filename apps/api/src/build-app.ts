@@ -32,6 +32,7 @@ import {
   type GatewayConnectionState,
 } from './gateway.js';
 import { WsDeviceCommandDispatcher } from './ws-device-command-dispatcher.js';
+import { InboundSmsLog } from './inbound-sms-log.js';
 import { createMetrics } from './metrics.js';
 
 export interface AppDeps {
@@ -73,6 +74,7 @@ export interface BuiltApp {
   readonly app: FastifyInstance;
   readonly connections: ConnectionRegistry;
   readonly smsDispatcher: WsDeviceCommandDispatcher;
+  readonly inboundSmsLog: InboundSmsLog;
 }
 
 interface RegisterBody {
@@ -112,6 +114,7 @@ export async function buildApp(
 
   const connections = new ConnectionRegistry();
   const smsDispatcher = new WsDeviceCommandDispatcher({ registry: connections });
+  const inboundSmsLog = new InboundSmsLog();
   const metrics = createMetrics();
 
   app.addHook('onResponse', (request, reply, done) => {
@@ -418,6 +421,9 @@ export async function buildApp(
           onSmsResult: (messageId, result) => {
             smsDispatcher.handleSmsResult(messageId, result);
           },
+          onSmsReceived: (deviceId, message) => {
+            inboundSmsLog.record(deviceId, message);
+          },
         },
         state,
         raw.toString(),
@@ -444,5 +450,18 @@ export async function buildApp(
     });
   });
 
-  return { app, connections, smsDispatcher };
+  app.get('/gateway/inbound-sms', async (request, reply) => {
+    try {
+      // NOTE: not yet organization-scoped - InboundSmsRecord only carries
+      // deviceId, and DeviceService has no deviceId->organizationId lookup
+      // yet. Fine for a single-tenant pilot; needs that lookup (or storing
+      // organizationId directly in InboundSmsLog) before multi-tenant use.
+      requireAuth(request);
+      await reply.send({ messages: inboundSmsLog.recent() });
+    } catch {
+      await reply.code(401).send({ message: 'Unauthorized' });
+    }
+  });
+
+  return { app, connections, smsDispatcher, inboundSmsLog };
 }
