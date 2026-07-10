@@ -213,7 +213,7 @@ Deliverables
 
 Status
 
-⬜ Planned
+✅ Complete
 
 ---
 
@@ -364,12 +364,12 @@ Current Version
 
 Current Milestone
 
-M16 Voice
+M17 Developer Experience
 
 Current Sprint
 
-Sprint 16
+Sprint 17
 
 Current Objective
 
-Build M17 Developer Experience: SDK, CLI, docs, examples, webhooks, OpenAPI, Postman collection.
+Build M18 Production Hardening: security review, performance, high availability - the last milestone before v1.0.

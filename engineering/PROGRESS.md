@@ -9,12 +9,46 @@ and update it before finishing.
 ## Status
 
 - Current Version: 0.9
-- Next Milestone: M17 SDK/Developer Experience
+- Next Milestone: M18 Production Hardening
 - Last Updated: 2026-07-10
 
 ---
 
 ## Completed
+
+### M17 - Developer Experience (2026-07-10)
+
+- **SDK**: `@acp/sdk` split into `api-client.ts` (generic bearer-token
+  helper, unchanged from M02) and a new `acp-client.ts` — `AcpClient`
+  wraps every route `apps/api` exposes: `register`, `login`, `refresh`
+  (no auth needed), `listDevices`, `getAnalytics`, `getIntegrationConfig`/
+  `setIntegrationConfig` (auth needed). 7 tests.
+- **CLI**: new `@acp/cli` package, bin name `acp` — `register`, `login`,
+  `devices`, `analytics`, `logout` commands, session persisted at
+  `~/.acp/session.json` via `FileSessionStore`. Verified for real: built
+  `dist/bin.js` and ran it directly with `node` (shebang preserved,
+  correct usage-error output), not just typechecked. 9 tests.
+- **Webhooks**: new `@acp/webhooks` package — `WebhookDispatcher`
+  subscribes to the shared `EventBus` for `MessageCreated`/`MessageQueued`/
+  `MessageSent`/`DeviceConnected`/`DeviceDisconnected` (the events whose
+  payload actually carries a `tenantId` — `MessageDelivered`/`MessageFailed`
+  carry a `DeliveryReport` with only a `messageId`, so routing those would
+  need an extra repository lookup that isn't wired up; documented as
+  deliberately out of scope), looks up matching subscriptions per
+  organization, and POSTs a signed payload (`x-acp-signature`:
+  HMAC-SHA256, reusing the M05 `retry()` helper for delivery retries).
+  Wired into `apps/api`: `GET`/`POST /webhooks`, `DELETE /webhooks/:id`
+  (the plaintext secret is only ever returned once, at creation). 6
+  dispatcher/signing tests, 2 new `apps/api` route tests (18 there now).
+- **OpenAPI**: `docs/openapi.yaml`, one entry per real route including
+  auth requirements and response codes; validated as parseable YAML.
+- **Postman Collection**: `docs/postman_collection.json`, mirrors the
+  OpenAPI spec; validated as parseable JSON.
+- **Documentation**: `docs/README.md` ties SDK/CLI/webhooks/OpenAPI/
+  Postman together.
+- **Examples**: `examples/quickstart` — a real runnable script
+  (`pnpm --filter @acp/example-quickstart start`) that registers an org
+  against a live `apps/api` and prints devices/analytics.
 
 ### M13-M16 - Email, Push, WhatsApp, Voice (2026-07-10)
 

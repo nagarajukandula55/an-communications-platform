@@ -40,6 +40,11 @@ import { EmailTransport } from '@acp/email-transport';
 import { PushTransport } from '@acp/push-transport';
 import { WhatsAppTransport } from '@acp/whatsapp-transport';
 import { VoiceTransport } from '@acp/voice-transport';
+import {
+  WEBHOOKS_SCHEMA_SQL,
+  WebhookDispatcher,
+  PostgresWebhookRepository,
+} from '@acp/webhooks';
 import { buildApp } from './build-app.js';
 
 async function main(): Promise<void> {
@@ -58,6 +63,7 @@ async function main(): Promise<void> {
   await db.query(DEVICES_SCHEMA_SQL);
   await db.query(MESSAGING_SCHEMA_SQL);
   await db.query(INTEGRATIONS_SCHEMA_SQL);
+  await db.query(WEBHOOKS_SCHEMA_SQL);
 
   const events = new EventBus();
 
@@ -90,6 +96,9 @@ async function main(): Promise<void> {
     },
   );
 
+  const webhooks = new PostgresWebhookRepository(db);
+  new WebhookDispatcher({ repository: webhooks, events });
+
   const { app, smsDispatcher } = await buildApp({
     auth,
     tokens,
@@ -97,6 +106,7 @@ async function main(): Promise<void> {
     deviceTokens,
     analytics,
     integrations,
+    webhooks,
   });
 
   const deviceDirectory: DeviceDirectory = {

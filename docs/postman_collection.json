@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "AN Communications Platform API",
+    "description": "Mirrors docs/openapi.yaml. Set the collection variable baseUrl and, after logging in, accessToken.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" },
+    { "key": "organizationId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "content-type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationName\": \"Acme\",\n  \"email\": \"owner@acme.test\",\n  \"password\": \"correct-horse-battery-staple\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "content-type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": \"{{organizationId}}\",\n  \"email\": \"owner@acme.test\",\n  \"password\": \"correct-horse-battery-staple\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "content-type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "authorization", "value": "Bearer {{accessToken}}" }],
+        "url": "{{baseUrl}}/devices"
+      }
+    },
+    {
+      "name": "Analytics",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "authorization", "value": "Bearer {{accessToken}}" }],
+        "url": "{{baseUrl}}/analytics"
+      }
+    },
+    {
+      "name": "Integrations",
+      "item": [
+        {
+          "name": "Get SMTP config",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/integrations/smtp"
+          }
+        },
+        {
+          "name": "Set SMTP config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "content-type", "value": "application/json" },
+              { "key": "authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/integrations/smtp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"host\": \"smtp.example.com\",\n  \"port\": \"587\",\n  \"username\": \"acp\",\n  \"password\": \"changeme\",\n  \"fromAddress\": \"no-reply@example.com\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/webhooks"
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "content-type", "value": "application/json" },
+              { "key": "authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/webhooks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/hook\",\n  \"events\": [\"MessageCreated\", \"MessageSent\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/webhooks/:id"
+          }
+        }
+      ]
+    }
+  ]
+}

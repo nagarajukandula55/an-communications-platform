@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: AN Communications Platform API
+  version: 0.1.0
+  description: >
+    HTTP surface of apps/api. Bearer tokens are the accessToken returned by
+    /auth/register or /auth/login.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+  /auth/register:
+    post:
+      summary: Create a new organization and its owner user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organizationName, email, password]
+              properties:
+                organizationName: { type: string }
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthSession' }
+        '409':
+          description: Email already in use
+
+  /auth/login:
+    post:
+      summary: Log in with organization ID, email, and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organizationId, email, password]
+              properties:
+                organizationId: { type: string }
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthSession' }
+        '401':
+          description: Invalid credentials
+
+  /auth/refresh:
+    post:
+      summary: Exchange a refresh token for a new session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthSession' }
+        '401':
+          description: Invalid or expired refresh token
+
+  /devices:
+    get:
+      summary: List devices for the authenticated organization
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items: { $ref: '#/components/schemas/Device' }
+        '401':
+          description: Unauthorized
+
+  /analytics:
+    get:
+      summary: Delivery statistics for the authenticated organization
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeliveryStats' }
+        '401':
+          description: Unauthorized
+
+  /integrations/{provider}:
+    get:
+      summary: Read a provider's stored config (secrets masked)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [smtp, fcm, apns, whatsapp, voice]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provider: { type: string }
+                  config: { type: object, additionalProperties: { type: string } }
+        '401':
+          description: Unauthorized
+        '404':
+          description: Unknown provider
+    put:
+      summary: Save a provider's config (encrypted at rest)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [smtp, fcm, apns, whatsapp, voice]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: { type: string }
+      responses:
+        '204':
+          description: Saved
+        '401':
+          description: Unauthorized
+        '404':
+          description: Unknown provider
+
+  /webhooks:
+    get:
+      summary: List webhook subscriptions for the authenticated organization
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhooks:
+                    type: array
+                    items: { $ref: '#/components/schemas/WebhookSubscription' }
+    post:
+      summary: Create a webhook subscription
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url: { type: string }
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      [MessageCreated, MessageQueued, MessageSent, DeviceConnected, DeviceDisconnected]
+      responses:
+        '201':
+          description: Created (the response is the only time `secret` is returned)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebhookSubscriptionWithSecret' }
+        '400':
+          description: No valid event names provided
+        '401':
+          description: Unauthorized
+
+  /webhooks/{id}:
+    delete:
+      summary: Delete a webhook subscription
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          description: Unauthorized
+
+  /gateway/ws:
+    get:
+      summary: >
+        Android gateway WebSocket endpoint (not representable as a normal
+        HTTP operation - documented here for discoverability only). See
+        apps/api/src/gateway.ts for the message protocol.
+      responses:
+        '101':
+          description: Switching Protocols
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT access token
+  schemas:
+    AuthSession:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id: { type: string }
+            organizationId: { type: string }
+            email: { type: string }
+            role: { type: string, enum: [owner, admin, member] }
+        accessToken: { type: string }
+        refreshToken: { type: string }
+    Device:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [online, offline, unknown] }
+        lastSeenAt: { type: string, format: date-time }
+    DeliveryStats:
+      type: object
+      properties:
+        total: { type: integer }
+        byStatus: { type: object, additionalProperties: { type: integer } }
+        byChannel: { type: object, additionalProperties: { type: integer } }
+    WebhookSubscription:
+      type: object
+      properties:
+        id: { type: string }
+        url: { type: string }
+        events: { type: array, items: { type: string } }
+        createdAt: { type: string, format: date-time }
+    WebhookSubscriptionWithSecret:
+      allOf:
+        - $ref: '#/components/schemas/WebhookSubscription'
+        - type: object
+          properties:
+            secret:
+              type: string
+              description: Only returned once, at creation time. Used to verify the x-acp-signature header.

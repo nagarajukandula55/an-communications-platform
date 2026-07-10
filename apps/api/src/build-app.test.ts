@@ -15,6 +15,7 @@ import {
   InMemoryIntegrationRepository,
   IntegrationsService,
 } from '@acp/integrations';
+import { InMemoryWebhookRepository } from '@acp/webhooks';
 import { buildApp } from './build-app.js';
 
 async function createApp() {
@@ -41,6 +42,7 @@ async function createApp() {
     new InMemoryIntegrationRepository(),
     { encryptionSecret: 'test-secret' },
   );
+  const webhooks = new InMemoryWebhookRepository();
 
   const { app } = await buildApp({
     auth,
@@ -49,6 +51,7 @@ async function createApp() {
     deviceTokens,
     analytics,
     integrations,
+    webhooks,
   });
   return app;
 }
@@ -244,5 +247,80 @@ describe('API app', () => {
       headers: { authorization: `Bearer ${registered.accessToken}` },
     });
     expect(response.statusCode).toBe(404);
+  });
+
+  it('creates, lists, and deletes a webhook subscription', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+    const authHeader = { authorization: `Bearer ${registered.accessToken}` };
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/webhooks',
+      headers: authHeader,
+      payload: { url: 'https://example.com/hook', events: ['MessageCreated'] },
+    });
+    expect(create.statusCode).toBe(201);
+    const created: { id: string; secret: string } = create.json();
+    expect(created.secret).toBeTruthy();
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/webhooks',
+      headers: authHeader,
+    });
+    expect(list.statusCode).toBe(200);
+    const listed: { webhooks: { id: string; secret?: string }[] } = list.json();
+    expect(listed.webhooks).toHaveLength(1);
+    expect(listed.webhooks[0]?.secret).toBeUndefined();
+
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `/webhooks/${created.id}`,
+      headers: authHeader,
+    });
+    expect(del.statusCode).toBe(204);
+
+    const listAfter = await app.inject({
+      method: 'GET',
+      url: '/webhooks',
+      headers: authHeader,
+    });
+    const afterBody: { webhooks: unknown[] } = listAfter.json();
+    expect(afterBody.webhooks).toHaveLength(0);
+  });
+
+  it('rejects a webhook subscription with no valid event names', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/webhooks',
+      headers: { authorization: `Bearer ${registered.accessToken}` },
+      payload: { url: 'https://example.com/hook', events: ['NotARealEvent'] },
+    });
+
+    expect(response.statusCode).toBe(400);
   });
 });

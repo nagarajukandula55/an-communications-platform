@@ -124,6 +124,12 @@
       "@acp/voice-transport": [
         "packages/voice-transport/src"
       ],
+      "@acp/webhooks": [
+        "packages/webhooks/src"
+      ],
+      "@acp/cli": [
+        "packages/cli/src"
+      ],
       "@acp/types": [
         "packages/types/src"
       ],
