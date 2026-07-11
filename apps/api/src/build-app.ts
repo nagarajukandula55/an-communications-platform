@@ -29,6 +29,7 @@ import { generateId } from '@acp/shared';
 import { ConnectionRegistry } from './connection-registry.js';
 import {
   handleGatewayMessage,
+  issueDeviceToken,
   type GatewayConnectionState,
 } from './gateway.js';
 import { WsDeviceCommandDispatcher } from './ws-device-command-dispatcher.js';
@@ -300,6 +301,40 @@ export async function buildApp(
       await reply.code(401).send({ message: 'Unauthorized' });
     }
   });
+
+  interface RegisterDeviceBody {
+    readonly name: string;
+  }
+
+  app.post<{ Body: RegisterDeviceBody }>(
+    '/devices',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['name'],
+          properties: { name: { type: 'string', minLength: 1, maxLength: 256 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const claims = requireAuth(request);
+        const device = await deps.devices.register(
+          claims.organizationId,
+          request.body.name,
+        );
+        const token = await issueDeviceToken(
+          deps.deviceTokens,
+          claims.organizationId,
+          device.id,
+        );
+        await reply.code(201).send({ device, token });
+      } catch {
+        await reply.code(401).send({ message: 'Unauthorized' });
+      }
+    },
+  );
 
   app.get('/analytics', async (request, reply) => {
     try {
