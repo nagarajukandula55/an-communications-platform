@@ -75,7 +75,7 @@ class GatewayConnectionService : Service() {
             }
             ActiveGateway.client = client
             client?.connect(token)
-            heartbeatHandler.post(heartbeatRunnable)
+            heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS)
         }
         return START_STICKY
     }
