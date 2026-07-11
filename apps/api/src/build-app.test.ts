@@ -173,6 +173,51 @@ describe('API app', () => {
     expect(response.json()).toEqual({ devices: [] });
   });
 
+  it('registers a device and issues it a usable gateway token', async () => {
+    const app = await createApp();
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        organizationName: 'Acme',
+        email: 'owner@acme.test',
+        password: 'correct-horse-battery-staple',
+      },
+    });
+    const registered: { accessToken: string } = register.json();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/devices',
+      headers: { authorization: `Bearer ${registered.accessToken}` },
+      payload: { name: 'Pixel 8' },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const body: { device: { id: string; name: string }; token: string } = response.json();
+    expect(body.device.name).toBe('Pixel 8');
+    expect(typeof body.token).toBe('string');
+    expect(body.token.length).toBeGreaterThan(0);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/devices',
+      headers: { authorization: `Bearer ${registered.accessToken}` },
+    });
+    expect(list.json()).toEqual({ devices: [body.device] });
+  });
+
+  it('rejects device registration without a bearer token', async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/devices',
+      payload: { name: 'Pixel 8' },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
   it('rejects /analytics without a bearer token', async () => {
     const app = await createApp();
     const response = await app.inject({ method: 'GET', url: '/analytics' });
